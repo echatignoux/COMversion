@@ -1,0 +1,318 @@
+##' Internal utility
+##'
+##'
+##' @param data : données
+##' @param by : by
+##' @return tibble
+##' @keywords internal
+##' @author Edouard Chatignoux
+##' @export
+ag_call<-function(data=w_com_cp,
+                  by=by_w){
+  call<-terms(by)%>%attributes%$%term.labels
+  if (length(call)>0){
+    for(i in 1:length(call)){
+      var<-all.vars(by)[i]
+      fun<-function(x) eval(parse(text = gsub(var,"x",call[i])))
+      data%<>%
+        mutate_at(vars(var),fun)
+    }
+  }
+  data
+}
+
+
+##' Internal function to ventilate postal code to
+##' commune/IRIS code
+##'
+##' Note that population estimates from 2017 (geography 2019) is used to ventilate cases
+##'
+##'
+##' @param data : table with postal codes
+##' @param by : formula to compute weights, i.e. use com/IRIS age and/or sex structure to ventilate cases
+##' @param geo : out geography ("iris" or "com")
+##' @importFrom magrittr %$%
+##' @importFrom magrittr %<>%
+##' @import dplyr
+##' @import rlang
+##' @import dtplyr
+##' @return A tibble
+##' @author Edouard Chatignoux
+##' @export
+cp_to_geo <-
+  function( data, by = ~ 1 , geo = "iris"){
+    if(geo == "iris"){
+      p_cp<-p_cp_iris
+      p_cp%<>%rename(pds=p_i,geo=iris)
+    }
+    else{
+      p_cp<-(p_cp_com)
+      p_cp%<>%rename(pds=p_c,geo=com)
+    }
+
+    data%<>%ungroup()
+    if (!any(str_detect(names(data),paste0("^",geo,"$"))))
+      data%<>%mutate(geo = NA)
+    else
+      names(data)[names(data) == geo] <- "geo"
+
+    
+    if (is.null(by))
+      by_w<-~1
+    else {
+      dv <- setdiff(all.vars(by),names(p_cp))
+      if (length(dv)>0)
+        by_w<-update(by,
+                     paste0("~.-",paste(setdiff(all.vars(by),names(p_cp)),collapse="-")))
+      else
+        by_w<-by
+    }
+
+    ## On ne garde que les probas pour le by qui nous intéressent
+    by_imp<-str_replace(all.vars(by),"age","cage")
+    p_cp%<>%
+      lazy_dt()%>%
+      group_by_at(all_of(c("cp","geo",by_imp)))%>%
+      summarise(pds=sum(pds))%>%
+      as_tibble()
+
+    ## Création d'âge continu dans p_as_iris si besoin
+    if (any(str_detect(all.vars(by),"^age$")) & geo=="iris"){
+
+      conv_age<-tibble(age=0:99)%>%
+        mutate(cage = cut(age,
+                          breaks = c(0,3,6,11,18,25,40,55,64,80,Inf),
+                          include.lowest = TRUE,right=F,
+                          labels = c("00-02","03-05","06-10","11-17","18-24","25-39","40-54","55-64","65-79","80-P")))%>%
+        group_by(cage)%>%
+        mutate(n=n())%>%
+        ungroup()
+
+      p_cp%<>%
+        left_join(conv_age,by="cage")%>%
+        mutate_at(vars(pds),~.x/n)%>%
+        select_at(vars(-cage))%>%
+        select(-n)
+
+      }
+
+    varn<-data%>%ungroup()%>%select_if(is.numeric)%>%names%>%
+      setdiff(c("age","sexe"))
+
+    call<-terms(by_w)%>%attributes%$%term.labels
+    if (length(call)>0){
+      p_cp<-ag_call(data=p_cp,  by=by)
+      p_cp%<>%
+        group_by_at(vars(cp,"geo",!!all.vars(by_w)))%>%
+        summarise(pds=sum(pds),.groups = "keep")%>%
+        group_by_at(vars(cp,!!all.vars(by_w)))%>%
+        mutate(pds=pds/sum(pds))%>%
+        ungroup()%>%
+        mutate(pds=ifelse(is.na(pds),0,pds))
+
+      data%<>%ag_call(data=., by=by)
+      data%<>%
+        group_by_at(vars(cp,"geo",!!all.vars(by_w)))%>%
+        summarise_at(vars(varn),~sum(.x),.groups = "keep")
+
+      }
+
+    dt_imp<-data%>%
+      ungroup()%>%
+      lazy_dt()%>%
+      filter(is.na(geo),!is.na(cp))%>%
+      select(-geo)%>%
+      inner_join(p_cp,by=c("cp",all.vars(by_w)))%>%
+      group_by_at(all_of(c("geo",all.vars(by))))%>%
+      summarise_at(vars(varn),~sum(.x*pds))%>%
+      arrange(geo)%>%
+      as_tibble()
+
+    names(dt_imp)[names(dt_imp) == "geo"] <- geo
+
+    dt_imp
+
+  }
+
+
+##' Fonction de passage d'une géographie à une autre
+##'
+##' Par défaut, la fonction prend en argument une table d'entrée avec une définition des
+##' communes dans un millésime donné et sort une table dans un autre millésime.
+##' Les données (variables numériques) des communes fusionnées entre les deux millésime sont aggrégées.
+##' Les données (variables numériques) des communes séparées entre les deux millésime sont réparties entre les
+##' nouvelles communes au prorata de leur population lors de la première années de la scission.
+##' Les strates de population utilisées pour calculer ce prorata est laissé au choix de l'utilisateur.
+##' Si aucune table d'entrée n'est spécifiée, une table de conversion entre les géographie est retournée.
+##' Si l'option géo est modifiée, la fonction permet le passage d'un code postal vers des communes/iris, et des communes vers les iris (mais ce n'est certainement pas souhaitable).
+##'
+##' @param geo_in Millésime des codes communes (i.e. ceux de data si
+##'   data non NULL)
+##' @param geo_out Millésime des codes communes souhaités en sortie
+##' @param by : strates de pop utilisées pour le calcul des poids
+##'   (peut contenir des formules, de type cut par example); si des
+##'   variables de data doivent être conservées telle que, les mettre
+##'   dans le by (voir exemples)
+##' @param data Table de données dans la géographie millésimée geo_in
+##'   à sortir en géographie millésimée geo_out. La table doit avoir
+##'   des colonnes compatibles avec le by.  Si laissée à NULL, la
+##'   table des poids de passage est retournée.
+##' @param data_by : Mettre a TRUE pour regrouper data selon by
+##' @param geo : Formule donnant le niveau géographique d'entrée et de
+##'   sortie souhaités : \itemize{ \item \code{cp~iris}: pour cp en
+##'   entrée et iris en sortie \item \code{com~iris}: pour com en
+##'   entrée et iris en sortie \item \code{com~com}: pour com en
+##'   entrée et en sortie (idem à \code{~com}) } Toutes les
+##'   combinaisons sont possibles, sauf avec le cp en sortie et l'iris
+##'   en entrée (\code{com~cp} et \code{iris~com} sont inopérants par
+##'   exemple).
+##' @return Une table dans le nouveau millésime des communes
+##' @author Edouard Chatignoux
+##' @export
+##' @importFrom magrittr %$%
+##' @importFrom magrittr %<>%
+##' @import dplyr
+##' @import rlang
+##' @import tidyr
+##' @examples
+##' ## Pour avoir les poids de passage
+##' ## uniquement
+##' pass_geo(geo_in=2015,
+##'          geo_out=2017,
+##'          by=~1)
+##'
+##' ## Pour appliquer le passage  directement à une table
+##' ## Ex. table des pops géo 2013 à passer en version géo 2017
+##' ## Poids calculés par classe d'age * sexe
+##' ## On veut garder les infos contenues dans les colonnes dep et annee_pop
+##' data(dt_pop_2013)
+##' pass_geo(data=dt_pop_2013,
+##'          geo_in=2013,
+##'          geo_out=2017,
+##'          by=~cut(age,breaks=c(-Inf,50,Inf))+sexe+annee_pop+dep,
+##'          geo=  ~ com)
+pass_geo<-function(geo_in=2016,
+                   geo_out=2020,
+                   by=NULL,
+                   data=NULL,
+                   data_by = TRUE,
+                   geo=  ~ com
+                   ){
+  
+  dt_pop = NULL
+  ## Préliminaires
+  type_in <- formula.tools::lhs.vars(geo)
+  type_out <- formula.tools::rhs.vars(geo)
+  
+  if (is.null(type_in))
+    type_in <- type_out
+
+  if (is.null(by))
+    by<-~1
+
+  ## Vérifications
+  if (type_out == "iris" & (min(geo_in,geo_out)<2016))
+    stop("IRIS conversion not implemented for years prior to 2016")
+  if (type_out == "cp")
+    stop("Conversion to postal code not implemented")
+  if (type_in == "iris" & type_in != "iris")
+    stop("Conversion from iris not implemented")
+  if (data_by & !is.null(data)){
+    if ((length(all.vars(by))>1) & any(!(all.vars(by) %in% names(data))))
+      stop(paste(setdiff(all.vars(by),names(data)),collapse=",")," not in data")
+  }
+  if (type_in == "cp"){
+    if (geo_in != 2019)
+      message("Geography for postal code only available for 2019")
+    geo_in = 2019
+    by <- update(by,~.+cp)
+  }
+
+  out <- pass_com.w(geo_in,
+                    geo_out,
+                    by,
+                    dt_pop)
+  atr<-attributes(out)
+
+  if (type_in == "cp"){
+    if (is.null(data)){
+      data <- p_cp_iris%>%
+        select(cp)%>%
+        unique()%>%
+        tidyr::expand(cp,age=0:99)%>%
+        tidyr::expand(nesting(cp,age),sexe=1:2)%>%
+        select(all_of(c("cp",all.vars(atr$by_w))))%>%
+        unique()%>%
+        as_tibble()
+      data_by = FALSE
+      data$pds_cp<-1
+      by<-update(by,~.+cp)
+    }
+    data <-
+      cp_to_geo(data,by=by,geo=type_out)
+  }
+  
+  if (type_out=="iris" )
+    out <- com_to_iris(out)
+
+  if (!is.null(data)) {
+    data%<>%rename("geo"=all_of(type_out))
+    out%<>%rename("geo"=all_of(type_out),"geo_out"=paste0(type_out,"_out"))
+    by<-atr$by
+    by_w<-atr$by_w
+
+    if (data_by){
+      data%<>%
+        dtplyr::lazy_dt()%>%
+        group_by_at(vars(geo,!!all.vars(by)))%>%
+        summarise_if(is.numeric,~sum(.x)) %>%
+        ungroup()%>%
+        as_tibble()
+      data%<>%ag_call(., by=by_w)
+    }
+    ## On joint la table des poids et on pondère les obs
+    cols_to_keep <- c(all.vars(by),
+                      "geo",
+                      names(data%>%select_if(is.numeric)))%>%unique()
+    out%<>%
+      rename_at(vars(starts_with("pds_")),~paste0(strsplit(.x,"_")[[1]][1],"_w"))
+    
+    out%<>%
+      right_join(
+        data,
+        by=c("geo",all.vars(by_w)))%>%
+      filter(!is.na(pds_w))%>%
+      group_by_at(vars("geo",!!all.vars(by)))%>%
+      mutate(to_ag=n()>1)%>%
+      group_by_at(vars("geo_out",!!all.vars(by)))%>%
+      mutate(to_ag=ifelse(n()>1,TRUE,to_ag))%>%
+      group_by(to_ag)%>%
+      nest()%>%
+      mutate(data=purrr::map_if(data, to_ag,
+                                ~ .x %>%
+                                  group_by_at(vars("geo_out","statut",!!all.vars(by)))%>%
+                                  relocate(pds_w, .after = last_col())%>%
+                                  summarise_if(is.numeric,~sum(.x*pds_w))%>%
+                                  select(-pds_w) %>%
+                                  rename(geo=geo_out)%>%
+                                  ungroup())
+             )%>%
+      mutate(data=purrr::map_if(data, !to_ag,
+                                ~ .x %>%
+                                  select(-geo)%>%
+                                  rename(geo=geo_out)%>%
+                                     ungroup())
+             )%>%
+      tidyr::unnest(cols = c(data))%>%
+      ungroup()%>%
+      select_at(all_of(cols_to_keep))%>%
+      mutate(annee_geo = geo_out)%>%
+      relocate(annee_geo, .after = last_col())
+    
+    out%<>%rename_with(~ type_out, all_of("geo"))
+  }
+
+  out
+
+}
+

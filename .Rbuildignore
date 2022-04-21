@@ -1,0 +1,9 @@
+^.*\.Rproj$
+^\.Rproj\.user$
+^devtools_history\.R$
+^data-raw$
+^build_pack\.R$
+^inst$
+^\./R/read_sql\.R$
+^doc$
+^Meta$

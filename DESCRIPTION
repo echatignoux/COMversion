@@ -1,0 +1,53 @@
+Package: COMversion
+Title: Conversion des géographies Françaises
+Version: 1.2
+Authors@R: 
+    c(person(given = "Edouard",
+           family = "Chatignoux",
+           role = c("aut", "cre"),
+           email = "edouard.chatignoux@santepubliquefrance.fr",
+           comment = c(ORCID = "0000-0001-9988-1108")),
+       person(given = "Camille",
+           family = "Pelat",
+           role = c("ctb"),
+           email = "camille.pelat@santepubliquefrance.fr"),
+       person(given = "Sabira",
+           family = "Smaili",
+           role = c("ctb"),
+           email = "sabira.samili@santepubliquefrance.fr"))
+Description: Ce package permet le passage entre différentes géographies (communes, iris, code postal) et entre différntes millésimes des géographies
+License: GPL-3
+Encoding: UTF-8
+LazyData: false
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.1.2
+Imports: 
+    data.table,
+    tidyr,
+    dplyr,
+    dbplyr,
+    magrittr,
+    purrr,
+    rlang,
+    kableExtra,
+    dtplyr,
+    formula.tools,
+    stringr
+Depends: 
+    R (>= 4.0.0),
+    data.table,
+    tidyr,
+    dplyr,
+    dbplyr,
+    magrittr,
+    purrr,
+    rlang,
+    kableExtra,
+    dtplyr,
+    formula.tools,
+    stringr
+Suggests:
+    markdown,
+    rmarkdown,
+    knitr
+VignetteBuilder: knitr

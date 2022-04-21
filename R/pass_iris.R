@@ -1,0 +1,201 @@
+##' Pass from com to iris geography
+##'
+##' Internal function that links IRIS to communes from one geography
+##' to another geography.
+##' Correspondance between IRIS and communes is one-one.
+##' 
+##' @param out : com to com correspondance table
+##' @return A tibble of correspondance for the iris levels
+##' @keywords internal
+##' @importFrom magrittr %$% 
+##' @importFrom magrittr %<>%
+##' @import dplyr
+##' @import dtplyr
+##' @import rlang
+##' @import stringr
+##' @author Edouard Chatignoux
+##' @export 
+com_to_iris<-function(out){
+
+  geo_in<-attributes(out)$geo_in
+  geo_out<-attributes(out)$geo_out
+  by <- attributes(out)$by
+  by_w <- attributes(out)$by_w
+  
+  backward=geo_out<geo_in
+  
+  dt_pass <- pass_iris
+  w_pass <- w_pass_iris
+
+  if (backward){
+    dt_pass%<>%
+      mutate(iris_ini=iris_out,
+             com_ini=com_out,
+             com_fin=com,
+             iris_fin=iris,
+             annee_geo=annee_geo+1
+             )%>%
+      select(-iris,-com,-iris_out,-com_out)%>%
+      select(-match)
+    w_pass%<>%select(backward)%>%unnest(cols = backward)
+    }
+  else{
+    dt_pass%<>%
+      mutate(iris_fin=iris_out,
+             com_fin=com_out,
+             com_ini=com,
+             iris_ini=iris
+             )%>%
+      select(-iris,-com,-iris_out,-com_out)%>%
+      select(-match)
+    w_pass%<>%select(forward)%>%unnest(cols = forward)
+  }
+
+
+  ## Création d'âge continu dans p_as_iris si besoin
+  if (any(str_detect(all.vars(by),"^age$"))){
+    conv_age<-tibble(age=0:99)%>%
+      mutate(cage = cut(age,
+                        breaks = c(0,3,6,11,18,25,40,55,64,80,Inf),
+                        include.lowest = TRUE,right=F,
+                        labels = c("00-02","03-05","06-10","11-17","18-24","25-39","40-54","55-64","65-79","80-P")))%>%
+      group_by(cage)%>%
+      mutate(n=n())%>%
+      ungroup()
+
+    w_pass%<>%
+      left_join(conv_age,by="cage")%>%
+      mutate_at(vars(p_pass),~.x/n)%>%
+      select_at(vars(-cage))%>%
+      select(-n)
+    
+  }
+  
+  call<-terms(by_w)%>%attributes%$%term.labels
+  if (length(call)>0)
+    w_pass%<>%ag_call(data=.,  by=by_w)
+  
+  w_pass%<>%
+    group_by_at(vars(annee_geo,iris,iris_out,com,com_out,!!all.vars(by_w)))%>%
+    summarise(p_pass=sum(p_pass),.groups = "keep")
+
+  if (length(all.vars(by_w))>0)
+    dt_pass%<>%
+      tidyr::expand(nesting(annee_geo,iris_fin,com_fin,com_ini,iris_ini),
+                    w_pass%>%ungroup()%>%select_at(all_of(all.vars(by_w)))%>%unique()
+                    )
+
+    dt_pass%<>%
+      left_join(w_pass %>% rename(iris_ini=iris,iris_fin=iris_out,com_ini=com,com_fin=com_out),
+                by = c("annee_geo", "iris_fin", "com_fin", "com_ini", "iris_ini", all.vars(by_w)))%>%
+      mutate(p_pass = ifelse(is.na(p_pass),1,p_pass))
+
+
+
+  if (geo_in==geo_out){
+
+    dt_pass_iris<-
+      dt_pass%>%
+      filter(annee_geo==geo_in)%>%
+      dtplyr::lazy_dt()%>%
+      select(iris=iris_ini,com=com_ini,everything())%>%
+      select(-iris_fin,-com_fin,-p_pass)%>%
+      mutate(pds_iris=1,iris_out=iris,com_out=com,statut="Inchangée")%>%
+      unique()%>%
+      as_tibble()
+
+    dt_pass_iris%>%filter(iris=="973530000")
+    
+
+   } else {
+  
+  dt_pass_in_out<-
+    dt_pass%>%
+    filter(annee_geo==geo_in)%>%
+    select(-annee_geo)%>%
+    rename(w=p_pass)
+  if (abs(geo_in-geo_out)>1){
+    for (i in (geo_in+(-1)^backward):(geo_out+-1+2*backward)){
+      dt_pass_in_out%<>%
+        rename(com=com_fin,
+               iris=iris_fin,
+               w_fin=w)%>%
+        full_join(    
+          dt_pass%>%
+          rename(w=p_pass)%>%
+          filter(annee_geo==i)%>%
+          select(-annee_geo)%>%
+          rename(com=com_ini,
+                 iris=iris_ini),
+          by = c("iris", "com",all.vars(by_w)))%>%
+        mutate(w=w*w_fin)%>%
+        select(-iris,-com,-w_fin)%>%
+        as_tibble()
+    }
+  }
+  
+  dt_pass_iris<-
+    dt_pass_in_out%>%
+    rename(com=com_ini,iris=iris_ini,com_out=com_fin,iris_out=iris_fin)%>%
+    left_join(out,by = c("com","com_out",all.vars(by_w)))%>%
+    mutate(pds_com = ifelse(is.na(pds_com),1,pds_com))%>%
+    group_by_at(vars(c("com","com_out",all.vars(by_w))))%>% ## qq rares missmatchs entre données com et iris...
+    dtplyr::lazy_dt()%>%
+    mutate(pds_com = pds_com/n())%>%
+    ungroup()%>%
+    mutate(pds_iris=pds_com*w)%>%
+    group_by_at(vars(iris,all.vars(attributes(out)$by_w)))%>%
+    mutate(pds_iris=pds_iris/sum(pds_iris))%>%
+    ungroup()%>%
+    as_tibble()
+  
+  statut_iris<-
+    dt_pass_iris%>%
+    inner_join(out %>% filter(statut == "Inchangée"),
+               by = c("com", "com_out", "pds_com", "statut",all.vars(by_w)))%>%
+    dtplyr::lazy_dt()%>%
+    group_by(iris)%>%
+    mutate(scis=n()>1)%>%
+    group_by(iris_out)%>%
+    mutate(fus=n()>1)%>%
+    collect()%>%
+    mutate(fus=ifelse(scis,FALSE,fus))%>%
+    filter(iris != iris_out)
+
+  bilan<-statut_iris%>%
+    ungroup()%>%
+    filter(fus)%>%
+    summarise_at(vars(fus),sum)%>%
+    bind_cols(
+      statut_iris%>%
+      ungroup()%>%
+      filter(scis)%>%
+      select(iris,scis)%>%
+      unique()%>%
+      summarise_at(vars(scis),sum)
+      )
+  
+  if (sum(bilan%>%unlist)>0){
+    cat("En supplément des modifications de commues, ",sum(bilan%>%unlist)," iris ont fusionnés ou été séparés:\n")
+    if (bilan$fus!=0) cat(" -> ",bilan$fus," fusions\n")
+    if (bilan$scis!=0) cat(" -> ",bilan$scis," scissions\n")
+    }
+  
+  dt_pass_iris%<>%
+    left_join(statut_iris%>%select(iris,iris_out,scis,fus),
+              by = c("iris_out", "iris"))%>%
+    mutate(statut = as.character(statut),
+           statut = case_when(
+             scis == TRUE ~ paste0("com ", substr(statut,1,2),".",
+                                   "/iris ", "Sci."),
+             fus == TRUE~ paste0("com ", substr(statut,1,2),".",
+                                "/iris ", "Fus."),
+             TRUE ~ statut
+           ))%>%select(-w,-pds_com,-scis,-fus)
+
+
+     }
+  dt_pass_iris%>%
+    select(com,com_out,iris,iris_out,everything())
+
+}

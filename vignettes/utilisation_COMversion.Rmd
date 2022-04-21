@@ -1,0 +1,528 @@
+---
+title: "Utilisation de COMversion"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Utilisation de COMversion}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r config, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+  )
+
+```
+
+
+```{r setup}
+
+library(dtplyr)
+library(tidyverse)
+library(magrittr)
+library(COMversion)
+
+
+```
+
+# Présentation générale
+
+## Principe
+
+L'objectif du package `COMversion` est de permettre une navigation
+simple entre différents formats de géographie que l'on retrouve
+communément dans les données de santé (i.e. codes postaux, codes
+communes, codes IRIS) et les différents millésimes des ces formats
+(les contours des communes et des IRIS de l'INSEE change en effet au
+cours du temps, du fait de regroupements ou de scissions de
+communes ; faute d'information disponible, les codes postaux sont
+considérés comme fixes au cours du temps). 
+
+Concrètement, on se place dans une situation où l'on souhaite
+convertir une unité géographique A définie dans un référentiel
+géographique `in` (code postal ou millésime de commune/IRIS) donné,
+dans un référentiel `out`. 
+
+Trois cas de figures se présentent alors :
+
+1. A correspond a une unité géographique unique de `out`;
+2. A correspond est inclue dans une unité géographique de `out`;
+3. A appartient à plusieurs unités géographique de `out`. 
+
+Dans les cas 1. et 2. la conversion de A en géographie `out` est
+immédiate. Dans le cas 3., il s'agit de construire une règle
+permettant de répartir les observations de A entre les différentes
+unité géographiques qui lui correspondent dans `out`.
+
+Pour ce faire, le package se base sur les données de population, pour
+calculer le poids de l'unité A dans les unités géographique de
+`out`. Par exemple, si A correspond strictement aux unité B et C dans
+la géographie `out` (A = union de B et C), les données de A seront
+réparties dans B et C au prorata de la taille des populations de B et
+C (e.g. 90% des cas de A seront attribuées à B et 10% à C si B est 9
+fois plus peuplée que C). 
+
+## Matériel et méthodes
+
+Pour mettre en œuvre ce principe, il faut disposer d'une part de
+tables de correspondances entre les géographies permettant de savoir
+si la conversion de A dans `out` correspond aux situations
+1., 2. ou 3. ; d'autre part de disposer de données de poids permettant
+la conversion de A dans le cas 3.
+
+### Tables de correspondances
+
+Les tables de correspondances proviennent de deux sources. 
+
+#### Correspondance millésimes communes/IRIS
+
+Pour le passage d'un millésime de géographie de communes ou d'IRIS,
+des tables de correspondances sont mises à dispositions par l'INSEE
+(cf. les pages web de l'INSEE pour les
+[communes](https://www.insee.fr/fr/information/2028028) et les
+[IRIS](https://www.insee.fr/fr/information/2017499)). 
+
+A noter que les passages d'un millésime géographique à un autre
+se font toujours avec des correspondances strictes, une commune/IRIS A
+dans une géographie d'une année $n$ étant soit absorbée entièrement
+dans une commune/IRIS B de la géographie $n+1$, soit scindée
+strictement en 2 unités B et C telles que A = union de B et C. A noter
+par ailleurs que presque tous les changements d'IRIS sur la période
+20016-2021 correspondent à des changements de communes (e.g. commune
+non irisée). 
+
+Pour les scissions de communes et d'IRIS confondus avec des scissions
+de communes, les tables de populations communales
+en géographie de l'année de la scission étaient utilisées pour le
+calcul des poids de passage. Pour les
+scissions d'IRIS ne relevant pas de ce dernier cas, les tables de
+population des IRIS en géographie de l'année de la scission étaient utilisées.
+
+#### Correspondance codes postaux/codes commmunes-IRIS
+
+Pour établir la correspondance entre les codes postaux et les codes
+communes, nous nous basons sur un travail réalisé pour l'année 2019 par
+[Atlasanté](https://www.data.gouv.fr/fr/datasets/correspondance-code-postal-communes-2019-t-corresp-cp/),
+et qui fournit une table de correspondance codes postaux - codes communes. A 
+noter que cette table de passage n'existe que pour la géographie 
+2019 de l'INSEE, et que la conversion d'un code postal en code
+commune/IRIS passera nécessairement pas cette année de référence. 
+
+Contrairement à la situations précédente, les correspondances ne sont
+plus strictes, certaines communes-IRIS ayant plusieurs codes postaux,
+eux même partagés avec d'autres communes-IRIS. 
+
+La figure suivante illustre le cas pour des IRIS - codes postaux de
+l'Eure. Les iris sont représentés par des couleurs de fond et les
+contours des codes postaux  par des lignes pleines. Ce cas est
+symptomatique de la complexité du découpage en codes postaux par
+rapport aux codes communes/IRIS, des codes postaux pouvant découper des
+IRIS/communes en deux tout en rattachant des parties d'autres
+IRIS/communes. 
+
+```{r fig1,fig.width=10,fig.height=10, out.width="100%", dev="svg",echo=F, fig.cap = "Illustration de chevauchement d'IRIS et de codes postaux. Géographie 2019."}
+
+library(sf)
+shap_cp<-readRDS("../data-raw/src/cp/shap_cp.rds")
+shap_iris<-readRDS("../data-raw/src/iris/shap_iris.rds")
+cp_com<-readRDS("../data-raw/src/cp_com/dt_cp_com.rds")%>%filter(!match_cp_com)%>%unnest(com)
+com_cp<-readRDS("../data-raw/src/cp_com/dt_com_cp.rds")%>%filter(!match_com_cp)%>%unnest(cp)
+#cp_com%>%inner_join(com_cp)%$%cp%>%unique
+
+cps = "27940"
+coms = cp_com%>%filter(cp==cps)%$%com
+cps = com_cp%>%filter(com %in% coms)%$%cp%>%unique
+coms = cp_com%>%filter(cp %in% cps)%$%com
+
+ggplot()+
+  geom_sf(data= shap_iris%>%filter(com %in% coms),aes(fill=iris),
+          alpha=.3,colour="grey",show.legend = F ,linetype=2)+
+    geom_sf(data=shap_cp%>%filter(cp %in% cps),aes(colour=cp),fill=I(NA))
+  
+
+``` 
+
+Ces situations de correspondance composite représentent une part marginale, mais non négligeable
+des configurations, avec près de 11% des communes et des codes postaux
+concernés comme on peut le voir dans le tableau suivant.
+
+
+```{r tab, echo = F}
+
+cp_com<-readRDS("../data-raw/src/cp_com/dt_cp_com.rds")
+com_cp<-readRDS("../data-raw/src/cp_com/dt_com_cp.rds")
+
+cpts<-cp_com%>%
+  summarise(
+    match_cp=sum(n_com==1 & match_cp_com),
+    match_com=sum(n_com==1 & match_cp_com),
+    union_cp = sum(n_com!=1 & match_cp_com),
+    union_com = sum(n_com*(n_com!=1 & match_cp_com)),
+    autres_cp = sum(!match_cp_com))
+
+cpts %<>%
+  mutate(autres_com = com_cp%>%anti_join(cp_com%>%filter(match_cp_com)%>%unnest(com)%>%select(com))%>%nrow(),
+         union2_com = com_cp%>%filter(match_com_cp)%>%filter(n_cp>1)%>%nrow(),
+         union2_cp = com_cp%>%filter(match_com_cp)%>%filter(n_cp>1)%$%sum(n_cp)
+         )
+
+cpts%<>%
+  gather(var,val)%>%
+  separate(var,c("type","geo"))%>%
+  spread(geo,val)
+
+cpts%<>%
+  mutate(type=case_when(
+           type == "match" ~"cp = com",
+           type == "union" ~"cp = U com",
+           type == "union2" ~"com = U cp",
+           type == "autres" ~"Correspondance composite",
+           TRUE ~type
+         ))%>%.[c(2,3,4,1),]%>%
+  mutate(p_com=100*com/sum(com),
+         p_cp=100*cp/sum(cp),
+         )%>%
+  select(type,com,p_com,cp,p_cp)
+
+cpts%<>%
+  bind_rows(cpts%>%summarise_at(vars(com,p_com,cp,p_cp),sum)%>%mutate(type="Total"))
+
+cpts%>%
+  kableExtra::kbl(col.names=c("",rep(c("n","%"),2)),digits=1,
+                  caption = "Décompte des correspondances entres codes postaux et codes communes pour l'année 2019. Source : Atlasanté.")%>%
+  kableExtra::add_header_above(c(" ", "Communes" = 2, "Codes postaux" = 2))
+
+
+``` 
+
+### Données de population
+
+Les tables de populations utilisées pour les cas 3. sont issues des
+[recensements](https://www.insee.fr/fr/information/2008354) de
+l'INSEE d'une part, et des données de
+[carroyage à 200 m](https://www.insee.fr/fr/statistiques/4176290?sommaire=4176305)
+2015 de l'INSEE d'autre part. 
+
+Deux types de tables de recensement sont utilisées :
+
+* Les tables de populations communales en géographie 2006 à 2021 ; 
+* La table de  population à l'IRIS en géographie 2006 à 2021.
+
+
+### Passage d'une géographie à une autre
+
+#### Cas 1. et 2.
+
+Ces cas ne posent pas de difficulté particulière. Les tables de
+passage suffisent à transformer une géographie en une autre.
+
+#### Cas 3.
+
+##### Correspondance stricte entre les unités géographiques
+
+Lorsque la correspondance entre A dans `in` et B et C dans `out` est
+stricte (A = union de B et C), les tables de populations communales
+sont utilisées pour calculer les poids de répartition. Cette situation
+est la plus courante (tous les passages entre millésimes de
+communes/IRIS et majorité des correspondances codes postaux -
+communes/IRIS). 
+
+Pour un passage de A vers B et C, on calculera la probabilité
+$P(B|A,a,s)$ qu'une observation de A soit dans B pour âge $a$ et un
+sexe $s$ donnés, comme :
+$$P(B|A,a,s) = \frac{pop_{B,a,s}}{pop_{C,a,s}}$$ avec $pop_{B,a,s}$
+la taille de la population d'âge $a$ et de sexe $s$ dans B. A noter
+que cette probabilité est calculée l'année de la séparation de A dans
+B et C.
+
+A noter que les estimations de population dans les IRIS ne sont
+disponibles que par groupes d'âge tous sexes confondus et par sexe
+tous âges confondus. Nous avons donc fait l'hypothèse d'une
+indépendance entre l'âge et le sexe dans les IRIS
+($P(a,s|i)=P(a|i)\times P(s|i)$). Dans certaines situations par
+ailleurs (e.g. calcul des probabilités pour des âges précis), nous
+seront tenu à faire l'hypothèse que les probabilités par âge sont
+constantes dans une tranche d'âge. 
+
+##### Correspondance composite entre les unités géographiques
+
+Dans les situations plus complexes comme celle illustrée précédemment
+dans l'Eure, les données du carroyage sont utilisées en conjonction
+avec les données de population de l'IRIS.
+
+Dans un premier temps, les données du carroyage sont utilisées pour
+calculer la part de la population d'un code postal appartenant à chacun
+des IRIS qui le composent. Les données de carroyage donnent, pour un
+découpage de 200m par 200m, le nombre d'habitant par carreau. Le
+nombre d'habitants d'un code postal A contenu dans un IRIS B qu'il
+contient (en partie) peut donc être estimés par la somme des habitants
+des carreaux dans l'intersection. 
+
+Cette opération est illustrée dans la figure suivante, où sont
+superposés les carreaux du carroyage sur les codes postaux et IRIS de
+l'Eure de l'illustration précédente. 
+
+```{r fig2,fig.width=10,fig.height=10, out.width="100%",dev="svg",echo=F, fig.cap = "Illustration de chevauchement d'IRIS et de codes postaux, avec données de carroyage 200 m par 200 m. IRIS 2019 ; carreaux 2015."}
+
+load("../data-raw/src/cp_iris/inter_mailles_cp_iris.Rdata")
+library(sf)
+
+ggplot()+
+  geom_sf(data=mailles%>%filter(com %in% coms),aes(fill=pop))+
+  geom_sf(data= shap_iris%>%filter(com %in% coms),
+          alpha=.3,colour="grey",show.legend = F ,linetype=2)+
+  geom_sf(data=shap_cp%>%filter(cp %in% cps),aes(colour=cp),fill=I(NA))+
+  scale_fill_distiller(palette = "RdPu",direction=1,trans="sqrt")
+
+
+``` 
+
+Les données de population dans les carreaux permettent de calculer la
+probabilité qu'une observation d'un code postal $cp$ donné soit dans un des
+IRIS $i$ qu'il recoupe. Si on note par $p_c$ la population du carreau
+$c$, cette probabilité est estimée par $$P(i|cp) =
+\frac{\sum_{c \in (cp,i)} p_c }{\sum_{c\in (cp)} p_c}$$
+
+
+Dans un second temps, les données de population à l'IRIS sont
+utilisées pour calculer une probabilité qu'un IRIS appartienne à un
+code postal par âge et par sexe. Pour un âge $a$ et un sexe $s$
+donnés, en faisant l'hypothèse que la répartition de la population par
+âge et sexe dans un IRIS est homogène (et donc que
+$P(a,s|cp,i)=P(a,s|i)$), l’utilisation de la formule de Bayes donne :
+
+$$ 
+P(i|cp,a,s) \propto P(a,s|i,cp)\times P(i|cp) = P(a,s|i)\times P(i|cp)
+$$
+
+
+Grâce à ces probabilités, les observations d'un code postal donné
+peuvent être réparties dans les différents IRIS qui le composent. A
+noter que les versions de population utilisées pour calculer $P(i|cp)$
+(populations 2015) et $P(a,s|i)$ (populations 2017) diffèrent. 
+
+# Utilisation du package `COMversion`
+
+L'ensemble des méthodes exposées précédemment sont implémentées dans
+le paquet `COMversion`, qui utilise la fonction principale `pass_geo`
+pour :
+
+* Passer d'un millésime de communes/IRIS à un autre;
+* Convertir les communes d'un millésime en IRIS du même ou d'un autre millésime;
+* Convertir les codes postaux en communes/IRIS d'un millésime donné.
+
+Les arguments de `pass_geo` (`?pass_geo`) sont les suivants :
+
+* `geo_in` et `geo_out` : année de la géographie en entrée et en
+  sortie
+* `by`: formule permettant de spécifier les states de populations pour
+  lesquelles on souhaite calculer les probabilités $P(B|A,a,s)$ et
+  $P(i|cp,a,s)$. Un `by=~1` utilisera des probabilités tous ages et
+  sexes confondus, `by=~sexe` des probabilités par sexe et
+  `by=~sexe+cut(age,breaks=c(-Inf,50,Inf))` des probabilités par sexe
+  et groupes d'âge des 50 ans et moins et des plus de 50 ans
+* `geo` : donne la géographie de départ et de sortie souhaitées avec
+  une formule. Par exemple, `com~com` (équivalent à `~com`) donnera une
+  correspondance commune-commune, `cp~com`une correspondance code
+  postale-commune...
+* `data` : possibilité de donner une table d'observation en entrée,
+  sur laquelle les conversions de géographie sont appliquées. La table
+  en sortie sera une table avec la géographie de sortie, dans laquelle
+  les variables numériques sont réparties dans les nouvelles
+  géographies. Il est possible de conserver des variables de la table
+  d'entrée telles que en sortie (les rajouter au `by`) à condition
+  qu'elles ne varient pas selon les géographies impactées par les
+  conversions. Par ailleurs, les regroupements de classes d'âges
+  opérés dans le `by` (par exemple by=~cut(age,breaks=c(-Inf,50,Inf)))
+  sont appliquées à la table d'entrée par défaut. Mettre `data_by =
+  FALSE` sinon.
+
+Si ce dernier argument `data` est laissé à `NULL`, une table de
+correspondance avec les probabilités de passage entre les géographies
+est retournée.
+
+L'ensemble des données nécessaires aux opérations de passage sont
+stockées dans des bases internes (`?COMdata`).
+
+
+## Exemples d'utilisation
+
+### Passage d'un millésime de commune à un autre
+
+On souhaite passer d'une version des communes en géographie 2015 en une
+géographie 2017.
+
+```{r ex1}
+
+com_15_17<-pass_geo(geo_in = 2015,
+                    geo_out = 2017,
+                    geo=~com,
+                    by=~1
+                    )
+
+com_15_17%>%
+  group_by(statut)%>%
+  slice(1:5)
+
+```
+La colonne `com` donne la commune de départ (géographie 2015) et
+`com_out` la commune d'arrivée  (géographie 2017). Les poids (colonne
+`pds_com`) sont calculés ici tous ages et sexes confondus. Comme
+attendu, ils sont différent de 1 seulement pour les communes s'étant
+séparées. 
+
+L'utilisation d'un poids unique pour la scissions de la commune A en B
+et C peu sembler assez restrictif, les communes A et B pouvant avoir des
+différences dans les structures de populations. `pass_geo` dispose
+aussi d'un argument `by` qui permet de calculer des poids par
+structure de population. Si on veut calculer des poids par sexe par
+exemple :
+
+```{r ex2}
+
+pass_geo(geo_in = 2015,
+         geo_out = 2017,
+         by=~sexe
+         )%>%
+  filter(statut=="Scission")
+
+```
+
+Ou par sexe et par âge pour les plus ou moins de 90 ans.
+
+```{r ex3}
+
+pass_geo(geo_in = 2015,
+         geo_out = 2017,
+         by=~cut(age,breaks=c(-Inf,90,Inf))+sexe
+         )%>%
+  filter(statut=="Scission")
+
+```
+
+Les différences sont assez faibles (comme attendu pour des communes
+proches), mais peut permettre d'éviter parfois d'avoir des problèmes
+d'inadéquation du numérateur ou du dénominateur (ou en
+créer)... Possible en tous cas.
+
+Un fois les poids disponibles, on peut les appliquer à une table dans
+une géographie données pour passer d'une version à une autre.
+Par exemple, pour passer la table `dt_pop_2013`, en géographie 2015,
+en géographie 2017 :
+
+```{r ex4}
+
+data(dt_pop_2013)
+
+dt_pop_2013%>%
+  left_join(com_15_17,by="com")%>%
+  group_by(com_out)%>%
+  summarise(pop=sum(pds_com*pop))
+
+``` 
+
+La même opération peut cependant  se faire directement avec la fonction
+`pass_geo`, grâce à l'argument data. 
+
+```{r ex5}
+
+pass_geo(data=dt_pop_2013,
+         geo_in = 2015,
+         geo_out = 2017)
+
+``` 
+
+Avec cette utilisation de la
+fonction, toutes les variables numériques sont agrégées (ce qui n'a
+pas tellement de sens pour certaines variables comme l'année de
+population par exemple). 
+On peut rajouter des variables dans l'argument `by` afin qu'elle se
+soient pas modifiées. On ajoute donc l'année de population et
+également le département à conserver. 
+On modifie également le `by`
+pour avoir une pondération par age et sexe, et on veut passer
+finalement en une géographie 2013:
+
+```{r ex5b}
+
+pass_geo(data=dt_pop_2013,
+         geo_in = 2015,
+         geo_out = 2013,
+         by=~sexe+cut(age,breaks=c(-Inf,65,Inf))+dep+annee_pop)
+
+``` 
+
+
+# Passage d'une version d'IRIS à un autre
+
+La fonction `pass_geo` permet aussi de passer d'une version d'IRIS à
+une autre.
+
+On utilise pour cela l'argument `geo ` de la fonction :
+
+```{r ex6}
+
+iris_16_18<-pass_geo(geo_in = 2016,
+                     geo_out = 2020,
+                     geo=iris~iris
+                     )
+iris_16_18%>%
+  group_by(statut)%>%
+  slice(1:5)
+
+``` 
+
+On voit dans cet exemple que 47 IRIS ont connus des fusions en
+addition des 
+
+
+# Passage d'une version de codes postaux à des codes IRIS/codes commune
+
+`pass_geo` peut être utilisée aussi pour convertir des codes postaux
+en iris ou en commune. A noter que l'argument `geo_in` ici est
+inutile, la conversion se faisant dans tous les cas sur une base de
+correspondance en géographie 2019. On peut en revanche choisir un
+millésime de sortie, 2016 par exemple :
+
+```{r cp}
+
+cp_iris<-pass_geo(geo_in = 2016,
+                  geo_out = 2016,
+                  by=~1,
+                  geo=cp~iris
+                  )
+cp_iris
+
+``` 
+
+On peut vérifier que les poids de répartition des codes postaux
+somment bien à 1:
+
+```{r cp2}
+
+cp_iris%>%
+  group_by(cp)%>%
+  summarise(p=sum(pds_iris))%$%range(p)
+
+``` 
+
+
+Idem si on préfère les résultats par commune et par sexe :
+
+
+```{r cpcom}
+
+cp_com<-pass_geo(geo_in = 2019,
+                 geo_out = 2016,
+                 by=~sexe,
+                 geo=cp~com
+                 )
+cp_com%>%
+  group_by(cp)%>%
+  summarise(p=sum(pds_com))%$%range(p)
+
+``` 
+
+
+
