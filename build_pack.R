@@ -59,6 +59,9 @@ devtools::build(binary = TRUE)
 ## Installation dans mon R
 devtools::install()
 
+
+###'Tests
+##'====================================
 data(dt_pop_2013)
 a<-pass_geo(geo_in = 2015,
             geo_out = 2017)
@@ -114,7 +117,7 @@ cp_iris_sp <-
            geo_in = 2019,
            geo_out = 2019,
            by=~sexe+date,
-           geo=cp~iris, 
+           geo=cp~iris,
            data_by = TRUE)
 
 cp_iris_sp%$%table(statut)
@@ -193,7 +196,7 @@ cps%>%inner_join(aa%>%select(iris)%>%unique())
 
 cps%>%filter(cp=="11220")
 cps%>%filter(cp=="01500")
- 
+
 cp_iris_sp%>%select(iris)%>%unique()
 
 aa$cp%>%unique()

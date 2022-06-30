@@ -7,12 +7,12 @@
 ##======================================================================
 ##  Description:
 ##--------------
-##' Données internes pour le paquet 
-## 
+##' Données internes pour le paquet
+##
 ##======================================================================
 
 ###'Packages
-##'==================================== 
+##'====================================
 library(data.table)
 library(readxl)
 library(multidplyr)
@@ -25,22 +25,22 @@ library(COMversion)
 setwd("./data-raw")
 
 ###'Lecture des données
-##'==================================== 
+##'====================================
 ####'Commune
-##'---------------------------------------- 
+##'----------------------------------------
 dt_pass_com <- readRDS(file="./src/com/dt_pass_com.rds")
 dt_scis_com <- readRDS(file="./src/com/dt_scis_com.rds")
 dt_fus_com <- readRDS(file="./src/com/dt_fus_com.rds")
 dt_pop_com  <- readRDS(file="./src/com/dt_pop_com.rds")
 
 ####'Iris
-##'---------------------------------------- 
+##'----------------------------------------
 dt_pass_iris<-readRDS(file="./src/iris/dt_pass_iris.rds")
 dt_ref_geo<-readRDS(file="./src/iris/ref_iris_com.rds")
 w_pass_iris<-readRDS(file="./src/iris/w_pass_iris.rds")
 
 ####'Passage iris/cp
-##'---------------------------------------- 
+##'----------------------------------------
 p_cp_iris <- readRDS("./src/cp_iris/p_cp_iris.rds")
 ## On supprime les cases vides
 p_cp_iris%<>%
@@ -57,11 +57,11 @@ p_cp_iris%<>%
   ungroup()
 
 ####'Poids de passage com/cp
-##'---------------------------------------- 
+##'----------------------------------------
 p_cp_com <- readRDS("./src/cp_com/p_cp_com.rds")
 ## On supprime les cases vides
 p_cp_com%<>%
-  filter(!is.na(sexe),!is.na(age))%>%
+#  filter(!is.na(sexe),!is.na(age))%>%
   filter(! substr(com,1,3) == "976")%>%
   group_by(com)%>%
   mutate(sump=sum(p_c))%>%
@@ -74,7 +74,7 @@ p_cp_com%<>%
   mutate(p_c=p_c/sum(p_c))%>%
   ungroup()
 
-###'Sauvegarde 
+###'Sauvegarde
 ##'=============
 ## Sélection des pops nécessaires (comunes qui on connu des fusiosn ou scissions)
 dt_pop_com%<>%select(annee_pop,annee_geo,com,age,sexe,pop)
@@ -112,7 +112,7 @@ usethis::use_data(pass_com,fus_com,scis_com,pop_com,
                   internal = TRUE,overwrite = TRUE)
 
 ####'rda
-##'---------------------------------------- 
+##'----------------------------------------
 dt_pop_2013 <- dt_pop_com%>%filter(annee_pop==2013)%>%
   mutate(dep=substr(com,1,2))%>%
   select(annee_pop,annee_geo,dep,com,age,sexe,pop)%>%

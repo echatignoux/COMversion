@@ -7,12 +7,12 @@
 ##======================================================================
 ##  Description:
 ##--------------
-## 
-## 
+##
+##
 ##======================================================================
 
 ###'Init
-##'==================================== 
+##'====================================
 library(readxl)
 library(sf)
 library(tidyverse)
@@ -30,14 +30,14 @@ url_zip<-function(url){
 }
 
 ###'Référentiel
-##'==================================== 
+##'====================================
 url_zip("https://www.insee.fr/fr/statistiques/fichier/2017499/reference_IRIS_geo2019.zip")
 ref_iris <- read_xls("./src/reference_IRIS_geo2019.xls",skip=5)
 ref_iris%<>%rename(iris=CODE_IRIS)%>%
   rename_all(tolower)
 
 ###'Fichier pop
-##'==================================== 
+##'====================================
 ####' Telechargement des données
 ##'----------------------------------------
 url_zip("https://www.insee.fr/fr/statistiques/fichier/3137409/base-ic-evol-struct-pop-2014.zip")
@@ -74,7 +74,7 @@ get_pop <- function(annee){
     filter(str_detect(var,"P[0-9]+\\_"))%>%
     select(iris=IRIS,com=COM,var,val)%>%
     separate(var,c("var","age","var2"),sep="_")
-  
+
   dt_pop_iris %<>%
     filter(is.na(var2))%>%
     select(-var2)%>%
@@ -105,36 +105,36 @@ dt_pop <- lapply(2014:2018,get_pop)%>%
   bind_rows()
 
 ####' Vérifs
-##'---------------------------------------- 
+##'----------------------------------------
 ## Manque Saint-Pierre-et-Miquelon, Saint-Barthélemy et Saint-Martin aux refs iris
-setdiff(dt_pop$iris%>%unique,ref_iris$iris)
-## Manque Mayotte à la pop 
+setdiff(dt_pop%>%filter(annee_geo==2019)%$%iris%>%unique,ref_iris$iris)
+## Manque Mayotte à la pop
 setdiff(ref_iris$iris,dt_pop$iris%>%unique)
 
 ###'Shape file
-##'==================================== 
+##'====================================
 ####'Shap IRIS
-##'---------------------------------------- 
+##'----------------------------------------
 ## https://geoservices.ign.fr/documentation/diffusion/telechargement-donnees-libres.html#contoursiris
 ## voir la doc : https://geoservices.ign.fr/ressources_documentaires/Espace_documentaire/BASES_VECTORIELLES/CONTOURS_IRIS/SE_Contours-IRIS.pdf
 ## pour metropole : 2019
 ## pour St Pierre et Miquelon : 2017
 ## pour ST Barth et St Martin : 2014
 shap_iris_metro <-
-  read_sf("./src/CONTOURS-IRIS_2-1__SHP__FRA2019_2020-01-01/CONTOURS-IRIS/1_DONNEES_LIVRAISON_2020-01-00139/CONTOURS-IRIS_2-1_SHP_LAMB93_FXX-2019/CONTOURS-IRIS.shp")
+    read_sf("./src/shap_iris2021/CONTOURS-IRIS.shp")
 shap_iris_guad <-
-  read_sf("./src/CONTOURS-IRIS_2-1__SHP__FRA2019_2020-01-01/CONTOURS-IRIS/1_DONNEES_LIVRAISON_2020-01-00139/CONTOURS-IRIS_2-1_SHP_RGAF09UTM20_GLP-2019/CONTOURS-IRIS.shp")
+    read_sf("./src/CONTOURS-IRIS_2-1_SHP_UTM20W84GUAD_GLP-2018/CONTOURS-IRIS.shp")
 shap_iris_mart <-
-  read_sf("./src/CONTOURS-IRIS_2-1__SHP__FRA2019_2020-01-01/CONTOURS-IRIS/1_DONNEES_LIVRAISON_2020-01-00139/CONTOURS-IRIS_2-1_SHP_RGAF09UTM20_MTQ-2019/CONTOURS-IRIS.shp")
+  read_sf("./src/CONTOURS-IRIS_2-1_SHP_UTM20W84MART_MTQ-2018/CONTOURS-IRIS.shp")
 shap_iris_may <-
-  read_sf("./src/CONTOURS-IRIS_2-1__SHP__FRA2019_2020-01-01/CONTOURS-IRIS/1_DONNEES_LIVRAISON_2020-01-00139/CONTOURS-IRIS_2-1_SHP_RGM04UTM38S_MYT-2019/CONTOURS-IRIS.shp")
+  read_sf("./src/CONTOURS-IRIS_2-1_SHP_RGM04UTM38S_MYT-2018/CONTOURS-IRIS.shp")
 shap_iris_reu <-
-  read_sf("./src/CONTOURS-IRIS_2-1__SHP__FRA2019_2020-01-01/CONTOURS-IRIS/1_DONNEES_LIVRAISON_2020-01-00139/CONTOURS-IRIS_2-1_SHP_RGR92UTM40S_REU-2019/CONTOURS-IRIS.shp")
+  read_sf("./src/CONTOURS-IRIS_2-1_SHP_RGR92UTM40S_REU-2018/CONTOURS-IRIS.shp")
 shap_iris_guy <-
-  read_sf("./src/CONTOURS-IRIS_2-1__SHP__FRA2019_2020-01-01/CONTOURS-IRIS/1_DONNEES_LIVRAISON_2020-01-00139/CONTOURS-IRIS_2-1_SHP_UTM22RGFG95_GUF-2019/CONTOURS-IRIS.shp")
+  read_sf("./src/CONTOURS-IRIS_2-1_SHP_UTM22RGFG95_GUF-2018/CONTOURS-IRIS.shp")
 ## St Pierre et Miquelon - 2017
 shap_iris_975 <-
-   read_sf( "./src/CONTOURS-IRIS_2-1__SHP__FRA2017_2018-06-08/CONTOURS-IRIS/1_DONNEES_LIVRAISON_2018-06-00105/CONTOURS-IRIS_2-1_SHP_RGSPM06U21_SPM-2017", layer="CONTOURS-IRIS"  )
+    read_sf( "./src/CONTOURS-IRIS_2-1_SHP_RGSPM06U21_SPM-2018/CONTOURS-IRIS.shp"  )
 ## SAINT-BARTHELEMY 977 - 2014
 shap_iris_977 <-
   read_sf( dsn = "S:/alerte/Coronavirus_2020/3-Surveillance/SIDEP/INDICATEURS SpF/R/Prepare_data/IRIS/CONTOURS-IRIS_2-0__SHP_LAMB93_FXX2014_2014-01-01/CONTOURS-IRIS/1_DONNEES_LIVRAISON_2014/CONTOURS-IRIS_2-0_SHP_UTM20W84GUAD_D977-2014", layer="CONTOURS-IRIS_D977"  )
@@ -157,14 +157,14 @@ shap_iris <-
       )%>%bind_rows()%>%
   select(iris=CODE_IRIS,lib_iris=NOM_IRIS,com=INSEE_COM,geometry)
 
-setdiff(shap_iris$iris%>%unique,ref_iris$iris)
-setdiff(ref_iris$iris,dt_pop_iris$iris%>%unique)
+setdiff(shap_iris$iris%>%unique,dt_pop$iris%>%unique)
+setdiff(ref_iris$iris,dt_pop$iris%>%unique)
 
 
 ###'Passage entre les millésimes
-##'==================================== 
+##'====================================
 ####'Lecture des tables
-##'---------------------------------------- 
+##'----------------------------------------
 read_iris<-function(annee){
   if (annee>=2016)
     url<-paste0("https://www.insee.fr/fr/statistiques/fichier/2017499/reference_IRIS_geo",annee,".zip")
@@ -202,7 +202,7 @@ read_iris<-function(annee){
 
   tibble(annee_geo=annee)%>%
     mutate(dt_modif=list(
-             dt_modif),
+               dt_modif),
            dt_ref = list(dt_ref%>%
                          rename_all(tolower)%>%
                          select(iris=code_iris,lib_iris,com=depcom,everything())))
@@ -213,7 +213,7 @@ tab_iris<-lapply(2008:2021,read_iris)%>%
 
 
 ####'Table de référence géo (com + iris)
-##'---------------------------------------- 
+##'----------------------------------------
 ## https://www.insee.fr/fr/information/2434332
 dt_ref_geo <- tab_iris%>%select(annee_geo,dt_ref)%>%unnest()%>%unique%>%
   select(annee_geo,iris,lib_iris,com,lib_com=libcom)
@@ -238,10 +238,20 @@ shap_iris2021<-read_sf("./src/shap_iris2021/CONTOURS-IRIS.shp")%>%
 
 
 ####'Travail sur la table de passage
-##'---------------------------------------- 
+##'----------------------------------------
 ##' La table de passage est affreuse et doit
 ##' être retravillée...
 ##' Ce qui est fait ici
+##' Par exemple, dans l'onglet  modif_iris de la table de référnce de 2017, il est dit que les communes 77166, 77170 et 77299 fusionnent avec la commune 77316,
+##' ce qui n'est pas le cas en 2017, mais en 2016.
+##' 
+##' 2017	773160000	77316	Moret-Loing-et-Orvanne	773160101	77316	Moret-Loing-et-Orvanne	2	Déplacement de limites
+##' 2017	771660000	77166	Écuelles	        773160102	77316	Moret-Loing-et-Orvanne	3	Rétablissement/Fusion de communes irisées
+##' 2017	771700000	77170	Épisy	                773160102	77316	Moret-Loing-et-Orvanne	3	Rétablissement/Fusion de communes irisées
+##' 2017	772990000	77299	Montarlot	        773160102	77316	Moret-Loing-et-Orvanne	3	Rétablissement/Fusion de communes irisées
+##'
+##' D'autres soucis au cas par cas (voir plus bas dans le code)
+
 source("../../../R/pass_com.R")
 source("../../../R/pass_geo.R")
 fus_com<-readRDS("../com/dt_fus_com.rds")
@@ -252,151 +262,172 @@ pass_com<-readRDS("../com/dt_pass_com.rds")
 dt_pass<-dt_pass_iris%>%filter(! (modif_iris==4 & iris_ini == iris_fin) )
 pass<-lapply(2016:2020,function(geo){
 
-  geo_in<-geo
-  geo_out<-geo+1
-  out <- pass_com.w(geo_in,
-                    geo_out,
-                    by=~1)
+    geo_in<-geo
+    geo_out<-geo+1
+    out <- pass_com.w(geo_in,
+                      geo_out,
+                      by=~1)
 
-  ref_fwd<-
-    dt_ref_geo%>%
-    filter(annee_geo==geo_in)%>%
-    select(com,iris)%>%
-    mutate(inn=TRUE)%>%
-    full_join(
-      dt_ref_geo%>%filter(annee_geo==geo_in+1)%>%
-      select(com,iris)%>%mutate(out=TRUE)
-    )
+    ## Liste des iris en in et en out
+    ref_fwd<-
+        dt_ref_geo%>%
+        filter(annee_geo==geo_in)%>%
+        select(com,iris)%>%
+        mutate(inn=TRUE)%>%
+        full_join(
+            dt_ref_geo%>%filter(annee_geo==geo_in+1)%>%
+            select(com,iris)%>%mutate(out=TRUE)
+        )
 
-
-  ## Inchangées
-  match1<-
-    ref_fwd%>%
-    filter(out,inn)%>%
-    mutate(com_fin=com,iris_fin=iris,match=1)%>%
-    select(com,iris,com_out=com_fin,iris_out=iris_fin,match)
-
-  ## En entrée mais pas en sortie à cause de fusions, avec un seul iris par commune
-  match2<-ref_fwd%>%
-    filter(is.na(out))%>%
-    right_join(    
-      out%>%filter(statut=="Fusion")%>%
-      left_join(dt_ref_geo%>%filter(annee_geo==geo+1)%>%select(com_out=com,iris_out=iris))%>%
-      filter(com != com_out)%>%
-      group_by(com)%>%
-      filter(n()==1)
-    )%>%
-    mutate(match=2)%>%
-    select(com,iris,com_out,iris_out,match)
-
-  ## En sortie mais pas en en entrée à cause de scissions
-  match3<-
-    ref_fwd%>%
-    filter(is.na(inn) & !is.na(out))%>%
-    rename(com_out=com,iris_out=iris)%>%
-    inner_join(out%>%filter(statut=="Scission"))%>%
-    left_join(dt_ref_geo%>%filter(annee_geo==geo))%>%
-    mutate(match=3)%>%
-    select(com,iris,com_out,iris_out,match)
-
-  ## En entrée mais pas en sortie, qui sont dans dt_pass
-  match4<-
-    ref_fwd%>%
-    filter(is.na(out))%>%
-    left_join(dt_pass%>%filter(annee_geo==geo_in+1)%>%rename(iris=iris_ini,com=com_ini))%>%
-    filter(!is.na(annee_geo))%>%
-    select(com,iris,com_out=com_fin,iris_out=iris_fin)%>%
-    inner_join(out)%>%
-    select(com,iris,com_out,iris_out)%>%
-    mutate(match=4)
-
-  ## En entrée mais pas en sortie, pas dans dt_pass : noms modifiés lors des fusions
-  match5<-ref_fwd%>%
-    filter(is.na(out))%>%
-    left_join(dt_pass%>%filter(annee_geo==geo_in+1)%>%rename(iris=iris_ini,com=com_ini))%>%
-    filter(is.na(annee_geo))%>%
-    left_join(out)
-  match5%$%table(statut)
-
-  match5%<>%
-    select(com,iris,com_out)%>%
-    left_join(dt_ref_geo%>%
-              filter(annee_geo==geo_in+1)%>%
-              select(com_out=com,iris_out=iris)
-              )%>%
-    mutate(match=5)
-  ## Attention, certains num d'iris correspondent à d'anciens IRIS. On les cherche ici.
-  match5%<>%
-    group_by(com,iris,com_out)%>%
-    mutate(seek_old=n()>1)%>%
-    group_by(seek_old)%>%
-    nest()%>%
-    mutate(data=map2(data,seek_old,
-                     function(data,seek_old){
-                       if (seek_old)
-                         data%<>%left_join(  
-                                   dt_pass%>%select(iris=iris_fin,com=com_fin,iris_ini)%>%
-                                   left_join(dt_pass%>%select(iris_ini,iris_fin))%>%
-                                   select(-iris_ini)%>%unique()
-                                 )%>%filter(iris_out==iris_fin)
-                       data
-                     }))%>%
-    unnest(data)%>%
-    ungroup()%>%
-    select(com,iris,com_out,iris_out,match)
-
-  ## On en est où?
-  ref_tmp<-
-    match1%>%
-    bind_rows(match2)%>%
-    bind_rows(match3)%>%
-    bind_rows(match4)%>%
-    bind_rows(match5)%>%
-    unique()
-
-  ## En sortie mais pas en en entrée -> apparition spontannée : on passe par les fonds de carte
-  ## Ne devrait pas exister, mais existe
-  match6<-
-    ref_fwd%>%
-    filter(is.na(inn) & !is.na(out))%>%
-    rename(com=com,iris=iris)%>%
-    anti_join(ref_tmp)
-
-  if (nrow(match6)>0){
-   
-    shap_in<-shap_iris2016%>%
-      inner_join(match6%>%select(com)%>%unique())%>%
-      mutate(area_in = st_area(geometry))
-    shap_out<-shap_iris2017%>%
-      inner_join(match6%>%select(com)%>%unique())%>%
-      mutate(area_out = st_area(geometry))%>%
-      rename(iris_out=iris)
-
-    match6 <- st_intersection(shap_in, shap_out) %>% 
-      mutate(int_area = st_area(.)) %>%   # create new column with shape area
-      select(com, iris, iris_out, area_in, area_out, int_area) %>%   # only select columns needed to merge
-      st_drop_geometry()  %>%
-      mutate(pct_in = as.numeric(int_area/area_in),
-             pct_out = as.numeric(int_area/area_out)
-             )%>%
-      filter(pct_out>.9)%>%
-      select(com,iris,iris_out)%>%
-      filter(iris!=iris_out)%>%
-      anti_join(ref_tmp)%>%
-      mutate(match=6)%>%
-      mutate(com_out=com)
+    ## Inchangés 
+    match1<-
+        ref_fwd%>%
+        filter(out,inn)%>%
+        mutate(com_fin=com,iris_fin=iris,match=1)%>%
+        select(com,iris,com_out=com_fin,iris_out=iris_fin,match)
     
-  }
-  ## On sort
-  match1%>%
-    bind_rows(match2)%>%
-    bind_rows(match3)%>%
-    bind_rows(match4)%>%
-    bind_rows(match5)%>%
-    bind_rows(match6)%>%
-    unique()%>%
-    mutate(annee_geo=geo)
-  
+    ## En entrée mais pas en sortie à cause de fusions, avec un seul iris par commune
+    match2<-ref_fwd%>%
+        filter(is.na(out))%>%
+        right_join(
+            out%>%filter(statut=="Fusion")%>%
+            left_join(dt_ref_geo%>%filter(annee_geo==geo+1)%>%select(com_out=com,iris_out=iris))%>%
+            filter(com != com_out)%>%
+            group_by(com)%>%
+            filter(n()==1)
+        )%>%
+        mutate(match=2)%>%
+        select(com,iris,com_out,iris_out,match)
+
+    ## En sortie mais pas en en entrée à cause de scissions
+    match3<-
+        ref_fwd%>%
+        filter(is.na(inn) & !is.na(out))%>%
+        rename(com_out=com,iris_out=iris)%>%
+        inner_join(out%>%filter(statut=="Scission"))%>%
+        left_join(dt_ref_geo%>%filter(annee_geo==geo))%>%
+        mutate(match=3)%>%
+        select(com,iris,com_out,iris_out,match)
+
+    ## En entrée mais pas en sortie, qui sont dans dt_pass
+    match4<-
+        ref_fwd%>%
+        filter(is.na(out))%>%
+        left_join(dt_pass%>%filter(annee_geo==geo_in+1)%>%
+                  rename(iris=iris_ini,com=com_ini))%>%
+        filter(!is.na(annee_geo))%>%
+        select(com,iris,com_out=com_fin,iris_out=iris_fin)%>%
+        inner_join(out)%>%
+        select(com,iris,com_out,iris_out)%>%
+        mutate(match=4)
+
+    ## En entrée mais pas en sortie, pas dans dt_pass : noms modifiés lors des fusions
+    ## Ex. : entre 2016 et 2017, 240530201 devient 240530103,
+    ## sans que celà soit listé dans les onglets modif_iris
+    match5<-ref_fwd%>%
+        filter(is.na(out))%>%
+        left_join(dt_pass%>%filter(annee_geo==geo_in+1)%>%rename(iris=iris_ini,com=com_ini))%>%
+        filter(is.na(annee_geo))%>%
+        left_join(out)
+    match5%$%table(statut)
+
+    match5%<>%
+        select(com,iris,com_out)%>%
+        left_join(dt_ref_geo%>%
+                  filter(annee_geo==geo_in+1)%>%
+                  select(com_out=com,iris_out=iris)
+                  )%>%
+        mutate(match=5)
+    
+    ## Attention, certains num d'iris correspondent à d'anciens IRIS. On les cherche ici.
+    match5%<>%
+        group_by(com,iris,com_out)%>%
+        mutate(seek_old=n()>1)%>%
+        group_by(seek_old)%>%
+        nest()%>%
+        mutate(data=map2(data,seek_old,
+                         function(data,seek_old){
+                             if (seek_old)
+                                 data%<>%left_join(
+                                             dt_pass%>%select(iris=iris_fin,com=com_fin,iris_ini)%>%
+                                             left_join(dt_pass%>%select(iris_ini,iris_fin))%>%
+                                             select(-iris_ini)%>%unique()
+                                         )%>%filter(iris_out==iris_fin)
+                             data
+                         }))%>%
+        unnest(data)%>%
+        ungroup()%>%
+        select(com,iris,com_out,iris_out,match)
+
+
+    ## En sortie mais pas en entrée, qui sont dans dt_pass
+    match6<-
+        ref_fwd%>%
+        filter(is.na(inn))%>%
+        left_join(dt_pass%>%filter(annee_geo==geo_in+1)%>%
+                  rename(iris=iris_fin,com=com_fin))%>%
+        filter(!is.na(annee_geo))%>%
+        select(com = com_ini,iris = iris_ini,
+               com_out=com,iris_out=iris)%>%
+        inner_join(out)%>%
+        select(com,iris,com_out,iris_out)%>%
+        mutate(match=6)
+
+    ## On en est où?
+    ref_tmp<-
+        match1%>%
+        bind_rows(match2)%>%
+        bind_rows(match3)%>%
+        bind_rows(match4)%>%
+        bind_rows(match5)%>%
+        bind_rows(match6)%>%
+        unique()
+
+    ## En sortie mais pas en en entrée -> apparition spontannée : on passe par les fonds de carte
+    ## Ne devrait pas exister, mais existe
+    match7<-
+        ref_fwd%>%
+        filter(is.na(inn) & !is.na(out))%>%
+        anti_join(ref_tmp %>%
+                  select(com=com_out,iris=iris_out))
+
+    
+    if (nrow(match7)>0){
+
+        shap_in<-get(paste0("shap_iris",geo))%>%
+            inner_join(match6%>%select(com)%>%unique())%>%
+            mutate(area_in = st_area(geometry))
+        shap_out<-get(paste0("shap_iris",geo+1))%>%
+            inner_join(match6%>%select(com)%>%unique())%>%
+            mutate(area_out = st_area(geometry))%>%
+            rename(iris_out=iris)
+
+        match7 <- st_intersection(shap_in, shap_out) %>%
+            mutate(int_area = st_area(.)) %>%   # create new column with shape area
+            select(com, iris, iris_out, area_in, area_out, int_area) %>%   # only select columns needed to merge
+            st_drop_geometry()  %>%
+            mutate(pct_in = as.numeric(int_area/area_in),
+                   pct_out = as.numeric(int_area/area_out)
+                   )%>%
+            filter(pct_out>.9)%>%
+            select(com,iris,iris_out)%>%
+            filter(iris!=iris_out)%>%
+            anti_join(ref_tmp)%>%
+            mutate(match=7)%>%
+            mutate(com_out=com)
+
+    }
+    ## On sort
+    match1%>%
+        bind_rows(match2)%>%
+        bind_rows(match3)%>%
+        bind_rows(match4)%>%
+        bind_rows(match5)%>%
+        bind_rows(match6)%>%
+        bind_rows(match7)%>%
+        unique()%>%
+        mutate(annee_geo=geo)
+
 })
 
 dt_pass_iris<-pass%>%bind_rows()
@@ -415,7 +446,7 @@ dt_pass_iris%<>%
 
 
 ####'Vérifications
-##'---------------------------------------- 
+##'----------------------------------------
 ## pass_in dans ref
 dt_pass_iris%>%
   select(com,iris,annee_geo)%>%
@@ -448,7 +479,7 @@ dt_pass_iris%>%
   unique()%>%
   group_by(com,annee_geo)%>%
   mutate(n=n())%>%
-  filter(com=="55298")
+#  filter(com=="55298")
   filter(n>1)%>%
   arrange(com)
 readRDS("../com/dt_scis_com.rds")%>%filter(annee_modif>2016)
@@ -485,7 +516,7 @@ dt_pass_iris%>%filter(com=="27058")
 readRDS("../com/dt_fus_com.rds")%>%filter(com_fin=="01095")
 
 ####'Poids de passage pour les iris modifiés hors communes
-##'---------------------------------------- 
+##'----------------------------------------
 ## Forward
 pass_fwd <- dt_pass_iris%>%
   group_by(iris,com_out,com,annee_geo)%>%
@@ -557,7 +588,7 @@ w_pass_iris<-
          backward = list(w_bwd%>%mutate(p_pass=ifelse(is.na(p_pass),0,p_pass))))
 
 ###'On sauve
-##'==================================== 
+##'====================================
 saveRDS(dt_pop %>% filter(annee_geo == 2019),file="pop_iris_2019.rds")
 saveRDS(ref_iris,file="ref_iris.rds")
 saveRDS(shap_iris,file="shap_iris.rds")
@@ -565,5 +596,6 @@ saveRDS(dt_pass_iris,file="dt_pass_iris.rds")
 saveRDS(w_pass_iris,file="w_pass_iris.rds")
 saveRDS(tab_iris,file="tab_iris.rds")
 saveRDS(dt_ref_geo,file="ref_iris_com.rds")
+
 
 
