@@ -1,6 +1,8 @@
 ---
 title: "Utilisation de COMversion"
-output: rmarkdown::html_vignette
+output: 
+  rmarkdown::html_vignette:
+    keep_md: true
 vignette: >
   %\VignetteIndexEntry{Utilisation de COMversion}
   %\VignetteEngine{knitr::rmarkdown}
@@ -16,7 +18,7 @@ knitr::opts_chunk$set(
 ```
 
 
-```{r setup}
+```{r setup, message = FALSE}
 
 library(dtplyr)
 library(tidyverse)

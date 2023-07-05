@@ -51,7 +51,7 @@ devtools::check()
 devtools::build_manual()
 
 ## Vignette
-devtools::build_vignettes()
+devtools::build_vignettes(keep_md = TRUE)
 
 ## Construction du package (.zip)
 devtools::build(binary = TRUE)
