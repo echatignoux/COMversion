@@ -126,10 +126,10 @@ IRIS/communes.
 ```{r fig1,fig.width=10,fig.height=10, out.width="100%", dev="svg",echo=F, fig.cap = "Illustration de chevauchement d'IRIS et de codes postaux. Géographie 2019."}
 
 library(sf)
-shap_cp<-readRDS("../data-raw/src/cp/shap_cp.rds")
-shap_iris<-readRDS("../data-raw/src/iris/shap_iris.rds")
-cp_com<-readRDS("../data-raw/src/cp_com/dt_cp_com.rds")%>%filter(!match_cp_com)%>%unnest(com)
-com_cp<-readRDS("../data-raw/src/cp_com/dt_com_cp.rds")%>%filter(!match_com_cp)%>%unnest(cp)
+shap_cp<-readRDS("./data-raw/src/cp/shap_cp.rds")
+shap_iris<-readRDS("./data-raw/src/iris/shap_iris.rds")
+cp_com<-readRDS("./data-raw/src/cp_com/dt_cp_com.rds")%>%filter(!match_cp_com)%>%unnest(com)
+com_cp<-readRDS("./data-raw/src/cp_com/dt_com_cp.rds")%>%filter(!match_com_cp)%>%unnest(cp)
 #cp_com%>%inner_join(com_cp)%$%cp%>%unique
 
 cps = "27940"
@@ -152,8 +152,8 @@ concernés comme on peut le voir dans le tableau suivant.
 
 ```{r tab, echo = F}
 
-cp_com<-readRDS("../data-raw/src/cp_com/dt_cp_com.rds")
-com_cp<-readRDS("../data-raw/src/cp_com/dt_com_cp.rds")
+cp_com<-readRDS("./data-raw/src/cp_com/dt_cp_com.rds")
+com_cp<-readRDS("./data-raw/src/cp_com/dt_com_cp.rds")
 
 cpts<-cp_com%>%
   summarise(
@@ -267,7 +267,7 @@ l'Eure de l'illustration précédente.
 
 ```{r fig2,fig.width=10,fig.height=10, out.width="100%",dev="svg",echo=F, fig.cap = "Illustration de chevauchement d'IRIS et de codes postaux, avec données de carroyage 200 m par 200 m. IRIS 2019 ; carreaux 2015."}
 
-load("../data-raw/src/cp_iris/inter_mailles_cp_iris.Rdata")
+load("./data-raw/src/cp_iris/inter_mailles_cp_iris.Rdata")
 library(sf)
 
 ggplot()+
@@ -525,6 +525,5 @@ cp_com%>%
   summarise(p=sum(pds_com))%$%range(p)
 
 ``` 
-
 
 
