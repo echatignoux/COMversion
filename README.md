@@ -15,8 +15,9 @@ C'est ce que propose le package `COMversion`.
 # Installation
 
 ```r
+
 library(remotes)
-remotes::install_git("https://gitlab.santepubliquefrance.fr/edouard.chatignoux/comversion")
+remotes::install_git("https://gitlab.santepubliquefrance.fr/data/rpackages/comversion")
 
 ```
 
