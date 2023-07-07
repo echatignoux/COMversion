@@ -119,7 +119,7 @@ pass_com.w.one<-function(geo = 2016,
 ##' @param geo_out: année de la géo de sortie
 ##' @param by : strates de pop utilisées pour le calcul des poids (peut contenir des formules de type cut)
 ##' @param dt_pop : population (or weigth) table to use (default table if NULL)
-##' @return
+##' @return A tibble
 ##' @author Edouard Chatignoux
 ##' @keywords internal
 ##' @importFrom magrittr %$%

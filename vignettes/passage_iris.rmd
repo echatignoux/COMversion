@@ -1,24 +1,12 @@
 ---
 title: Logique de correspondance entre les millésimes d'IRIS
-author: Edouard Chatignoux
-date: Mon Jun 26 15:57:14 2023
-output:
-  bookdown::html_document2:
-    <!-- css: style.css  -->
-    code_folding: hide 
-    highlight: tango
-    fig_width: 9
-    fig_height: 5
-    dev: svg
-    number_sections: true
-    toc: true
-    toc_float:
-      collapsed: false
-      smooth_scroll: false
-    fig_caption: TRUE
-    bibliography: ["bib.bib"]
-    biblio-style: "apalike"
-    link-citations: true
+output: 
+  rmarkdown::html_vignette:
+    keep_md: true
+vignette: >
+  %\VignetteIndexEntry{Logique de correspondance entre les millésimes d'IRIS}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
 ---
 
 ```{r}
@@ -76,21 +64,12 @@ shap_iris2016<-read_sf("c:/Users/e.chatignoux/Documents/work/RPackages/COMversio
 shap_iris2017<-read_sf("c:/Users/e.chatignoux/Documents/work/RPackages/COMversion/data-raw/src/iris/src/shap_iris2017/CONTOURS-IRIS.shp")%>%
   select(com=INSEE_COM,iris=CODE_IRIS)
 
-modif_2016 <- read_xls(skip = 5,"./historiris/data/iris/reference_IRIS_geo2016.xls", sheet=3) %>%
+modif_2016 <- read_xls(skip = 5,"c:/Users/e.chatignoux/Documents/work/RPackages/valid_comversion/historiris/data/iris/reference_IRIS_geo2016.xls", sheet=3) %>%
   mutate(an = "2016")
-modif_2017 <- read_xls(skip = 5,"./historiris/data/iris/reference_IRIS_geo2017.xls", sheet=3) %>%
+modif_2017 <- read_xls(skip = 5,"c:/Users/e.chatignoux/Documents/work/RPackages/valid_comversion/historiris/data/iris/reference_IRIS_geo2017.xls", sheet=3) %>%
   mutate(an = "2017")
-modif_2018 <- read_xls(skip = 5,"./historiris/data/iris/reference_IRIS_geo2018.xls", sheet=3) %>%
+modif_2018 <- read_xls(skip = 5,"c:/Users/e.chatignoux/Documents/work/RPackages/valid_comversion/historiris/data/iris/reference_IRIS_geo2018.xls", sheet=3) %>%
   mutate(an = "2018")
-
-ir_2017 <- read_xls(skip = 5,"./historiris/data/iris/reference_IRIS_geo2017.xls", sheet=1) %>%
-  mutate(an = "2017")
-ir_2016 <- read_xls(skip = 5,"./historiris/data/iris/reference_IRIS_geo2016.xls", sheet=1) %>%
-  mutate(an = "2016")
-ir_2015 <- read_xls(skip = 5,"./historiris/data/iris/reference_IRIS_geo2015.xls", sheet=1) %>%
-  mutate(an = "2015")
-
- tab_1617<- read_csv("c:/Users/e.chatignoux/Documents/work/RPackages/valid_comversion/historiris/notebooks/output/passage_2016_2017_nb.csv")
 
 
 ``` 
@@ -211,7 +190,7 @@ a <- pass_geo(
 
 ``` 
 
-```{r}
+```{r fig1,fig.width=10,fig.height=5, out.width="100%", dev="svg",echo=F, fig.cap = "Illustration du problème de documentation des passages."}
 
 shap1617<-shap_iris2016 %>% mutate(an=2016) %>%
   bind_rows(shap_iris2017 %>% mutate(an=2017) )
@@ -231,29 +210,9 @@ shap1517 %>%
 
 ``` 
 
-Il semble cependant que dans historIRIS, ce soient les informations de
-la table des modifications qui aient été retenues, donnant lieu à des
-passages entre IRIS incorrects : 
-
-```{r}
-
-tab_1617 %>%
-  filter(CODE_IRIS_2017=="490180103") %>%
-  kbl%>%
-  kable_styling()
-
-``` 
-
 A noter que dans ce cas de figure, les IRIS listés en 2016 comme
 parents de "490180103" ne sont pas dans le référentiel des IRIS de
 2016 (mais dans celui de 2015, soit avant la fusion des communes en 2016).
-
-```{r}
-
-ir_2016 %>% filter(CODE_IRIS == "491570000") 
-ir_2015 %>% filter(CODE_IRIS == "491570000") 
-
-``` 
 
 ### Modifications non documentées ###
 
@@ -262,8 +221,7 @@ Ex. : entre 2016 et 2017, 240530201 fusionne avec l'IRIS 244470000 pour
 devenir 240530103,  sans que celà soit listé dans les onglets modif_iris.
 
 
-```{r}
-
+```{r fig2,fig.width=10,fig.height=5, out.width="100%", dev="svg",echo=F, fig.cap = "Illustration du problème de documentation non documentées."}
 modif_2017 %>% filter((IRIS_INI %in% c("240530103","240530201")) |(IRIS_FIN %in% c("240530103","240530201"))) %>%
   kbl%>%
   kable_styling()
@@ -644,12 +602,6 @@ L'IRIS "493750000" n'est cependant pas présent en 2016, mais en 2015.
 Il s'agit ici d'une reprise des IRIS qui existaient au préalable à une
 fusion de commune intervenue en 2016.
 
-```{r}
-
-ir_2015 %>% filter(CODE_IRIS=="493750000")
-
-``` 
-
 Les IRIS qui correspondaient aux communes de 2015, qui avaient été
 fusionné en l'IRIS "490230201" 2016 en même temps que les communes,
 ont été rétablis en 2017, mais avec de nouveaux numéros. 
@@ -666,8 +618,7 @@ modif_2016 %>% filter(IRIS_FIN=="490230201")
 
 ``` 
 
-```{r}
-
+```{r fig3,fig.width=10,fig.height=5, out.width="100%", dev="svg",echo=F, fig.cap = "Illustration du besoin d'utilisation des shapefiles."}
 pb_iris <- "490230201"
 shap1617 %>%
   filter( iris %in% c(pb_iris,

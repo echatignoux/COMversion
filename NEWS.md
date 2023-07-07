@@ -2,7 +2,11 @@
 
 ## Modifications majeures
 ### Actualisation des référentiels
-Ajout des référentiels géographiques 2021 et 2022.
+Ajout des référentiels géographiques 2021, 2022 et 2023.
+
+* Passage entre communes : géographies 2008 à 2023
+* Passage entre iris : géographies 2016 à 2021
+
 
 ### Correction d'erreurs
 * Reprise du programme de passage entre les versions d'IRIS. Mise à
