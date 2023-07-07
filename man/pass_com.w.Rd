@@ -21,7 +21,7 @@ pass_com.w(
 \item{geo_out:}{année de la géo de sortie}
 }
 \value{
-
+A tibble
 }
 \description{
 Utilise récursivement pass_com.w.one pour aller de l'année a à l'année b

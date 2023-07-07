@@ -131,20 +131,20 @@ setdiff(ref_iris$iris,dt_pop$iris%>%unique)
 ## pour St Pierre et Miquelon : 2017
 ## pour ST Barth et St Martin : 2014
 shap_iris_metro <-
-    read_sf("./src/shap_iris2021/CONTOURS-IRIS.shp")
+  read_sf("./data-raw/src/iris/src/shap_iris2019/CONTOURS-IRIS.shp")
 shap_iris_guad <-
-    read_sf("./src/CONTOURS-IRIS_2-1_SHP_UTM20W84GUAD_GLP-2018/CONTOURS-IRIS.shp")
+    read_sf("./data-raw/src/iris/src/CONTOURS-IRIS_2-1_SHP_UTM20W84GUAD_GLP-2018/CONTOURS-IRIS.shp")
 shap_iris_mart <-
-  read_sf("./src/CONTOURS-IRIS_2-1_SHP_UTM20W84MART_MTQ-2018/CONTOURS-IRIS.shp")
+  read_sf("./data-raw/src/iris/src/CONTOURS-IRIS_2-1_SHP_UTM20W84MART_MTQ-2018/CONTOURS-IRIS.shp")
 shap_iris_may <-
-  read_sf("./src/CONTOURS-IRIS_2-1_SHP_RGM04UTM38S_MYT-2018/CONTOURS-IRIS.shp")
+  read_sf("./data-raw/src/iris/src/CONTOURS-IRIS_2-1_SHP_RGM04UTM38S_MYT-2018/CONTOURS-IRIS.shp")
 shap_iris_reu <-
-  read_sf("./src/CONTOURS-IRIS_2-1_SHP_RGR92UTM40S_REU-2018/CONTOURS-IRIS.shp")
+  read_sf("./data-raw/src/iris/src/CONTOURS-IRIS_2-1_SHP_RGR92UTM40S_REU-2018/CONTOURS-IRIS.shp")
 shap_iris_guy <-
-  read_sf("./src/CONTOURS-IRIS_2-1_SHP_UTM22RGFG95_GUF-2018/CONTOURS-IRIS.shp")
+  read_sf("./data-raw/src/iris/src/CONTOURS-IRIS_2-1_SHP_UTM22RGFG95_GUF-2018/CONTOURS-IRIS.shp")
 ## St Pierre et Miquelon - 2017
 shap_iris_975 <-
-    read_sf( "./src/CONTOURS-IRIS_2-1_SHP_RGSPM06U21_SPM-2018/CONTOURS-IRIS.shp"  )
+    read_sf( "./data-raw/src/iris/src/CONTOURS-IRIS_2-1_SHP_RGSPM06U21_SPM-2018/CONTOURS-IRIS.shp"  )
 ## SAINT-BARTHELEMY 977 - 2014
 shap_iris_977 <-
   read_sf( dsn = "S:/alerte/Coronavirus_2020/3-Surveillance/SIDEP/INDICATEURS SpF/R/Prepare_data/IRIS/CONTOURS-IRIS_2-0__SHP_LAMB93_FXX2014_2014-01-01/CONTOURS-IRIS/1_DONNEES_LIVRAISON_2014/CONTOURS-IRIS_2-0_SHP_UTM20W84GUAD_D977-2014", layer="CONTOURS-IRIS_D977"  )
@@ -687,6 +687,7 @@ ref_com %>% filter(annee_geo>=2008,annee_geo<2023,str_sub(com,1,2)!="97") %>% an
 ##'====================================
 saveRDS(dt_pop %>% filter(annee_geo == 2019),file=file.path(path,"pop_iris_2019.rds"))
 saveRDS(ref_iris,file=file.path(path,"ref_iris.rds"))
+saveRDS(shap_iris,file=file.path(path,"shap_iris.rds"))
 saveRDS(dt_pass_iris,file=file.path(path,"dt_pass_iris.rds"))
 saveRDS(w_pass_iris,file=file.path(path,"w_pass_iris.rds"))
 saveRDS(tab_iris,file=file.path(path,"tab_iris.rds"))

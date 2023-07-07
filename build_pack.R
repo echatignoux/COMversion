@@ -235,3 +235,22 @@ dt_imp<-
   arrange(geo)%>%
   as_tibble()
 
+
+
+dt_cv <- pass_geo(
+  geo_in = 2017,
+  geo_out = 2020,
+  geo = ~iris)
+d_cv <- dt_cv %>%
+  filter(iris != iris_out)
+dt_cv %>% filter(iris == "147120000")
+dt_cv %>% filter(iris == "146660000")
+
+a <- readRDS("./data-raw/src/iris/dt_pass_iris.rds")
+a %>% filter(iris == "147120000")
+a %>% filter(iris == "146660000")
+
+dt_cv <- pass_geo(
+  geo_in = 2017,
+  geo_out = 2020,
+  geo = ~iris)

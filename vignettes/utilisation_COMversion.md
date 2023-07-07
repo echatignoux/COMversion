@@ -625,10 +625,10 @@ iris_16_18%>%
 #>  8 010040101 010040101    1     Inchangée              2020
 #>  9 010040102 010040102    1     Inchangée              2020
 #> 10 010040201 010040201    1     Inchangée              2020
-#> 11 766760000 766010000    0.244 Scission               2020
-#> 12 766760000 766760000    0.756 Scission               2020
-#> 13 146660000 147120000    0.5   com In./iris Sci.      2020
-#> 14 147120000 146660000    0.5   com In./iris Sci.      2020
+#> 11 766760000 766760000    0.756 Scission               2020
+#> 12 766760000 766010000    0.244 Scission               2020
+#> 13 147120000 146660000    0.5   com In./iris Sci.      2020
+#> 14 146660000 147120000    0.5   com In./iris Sci.      2020
 ```
 
 On voit dans cet exemple que 47 IRIS ont connus des fusions en
@@ -666,20 +666,20 @@ cp_iris<-pass_geo(geo_in = 2016,
 #> au moment de la scission
 #> --------------------------------------------------------------------------------
 cp_iris
-#> # A tibble: 51,928 × 5
+#> # A tibble: 51,934 × 5
 #>    cp    iris      pds_iris statut    annee_geo
 #>    <fct> <chr>        <dbl> <chr>         <dbl>
-#>  1 01000 010530101   0.0414 Inchangée      2016
-#>  2 01000 010530102   0.0401 Inchangée      2016
-#>  3 01000 010530103   0.0407 Inchangée      2016
-#>  4 01000 010530201   0.0479 Inchangée      2016
-#>  5 01000 010530202   0.0453 Inchangée      2016
-#>  6 01000 010530203   0.0417 Inchangée      2016
-#>  7 01000 010530301   0.0556 Inchangée      2016
-#>  8 01000 010530302   0.0688 Inchangée      2016
-#>  9 01000 010530401   0.0460 Inchangée      2016
-#> 10 01000 010530402   0.0509 Inchangée      2016
-#> # … with 51,918 more rows
+#>  1 01000 010530101  0.00567 Inchangée      2016
+#>  2 01000 010530102  0.0549  Inchangée      2016
+#>  3 01000 010530103  0.00558 Inchangée      2016
+#>  4 01000 010530201  0.00656 Inchangée      2016
+#>  5 01000 010530202  0.0621  Inchangée      2016
+#>  6 01000 010530203  0.0571  Inchangée      2016
+#>  7 01000 010530301  0.0763  Inchangée      2016
+#>  8 01000 010530302  0.0943  Inchangée      2016
+#>  9 01000 010530401  0.0631  Inchangée      2016
+#> 10 01000 010530402  0.0698  Inchangée      2016
+#> # … with 51,924 more rows
 ```
 
 On peut vérifier que les poids de répartition des codes postaux
@@ -724,5 +724,4 @@ cp_com%>%
   summarise(p=sum(pds_com))%$%range(p)
 #> [1] 2 2
 ```
-
 
