@@ -9,8 +9,12 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
-```{r, include=FALSE }
- knitr::opts_chunk$set(eval = TRUE, echo=T, cache=T,message = FALSE , warning = FALSE, include=TRUE )
+```{r config, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+  )
+
 ```
 
 
