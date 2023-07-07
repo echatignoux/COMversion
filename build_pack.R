@@ -10,6 +10,9 @@
 ##' Suite des étapes pour construire un pacquage avec devtools.
 ##======================================================================
 
+usethis::use_version()
+usethis::use_news_md()
+
 ##'Création des répertoires
 devtools::create()
 

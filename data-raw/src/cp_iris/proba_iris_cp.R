@@ -24,7 +24,7 @@ library(tidyverse)
 library(gridExtra)
 
 url_zip<-function(url){
-  src_dir<-"src"
+  src_dir<-"./data-raw/src/cp_iris/src"
   if ( !file.exists(src_dir) )
     dir.create(src_dir)
   temp_file<-file.path(src_dir,"tmp.zip")
@@ -37,19 +37,19 @@ url_zip<-function(url){
 ##'==================================== 
 ####'Ref
 ##'---------------------------------------- 
-ref_com<-readRDS("../com/ref_com.rds")
-ref_iris<-readRDS("../iris/ref_iris.rds")
-ref_cp<-readRDS("../cp/ref_cp.rds")%>%arrange(cp)
+ref_com<-readRDS("./data-raw/src/com/ref_com.rds") %>% filter(annee_geo==2019)
+ref_iris<-readRDS("./data-raw/src/iris/ref_iris.rds") %>% filter(annee_geo==2019)
+ref_cp<-readRDS("././data-raw/src/cp/ref_cp.rds")%>%arrange(cp)
 
 ####'Pop
 ##'---------------------------------------- 
-pop_iris<-readRDS("../iris/pop_iris_2019.rds")
-pop_iris<-readRDS("../iris/dt_pop_iris.rds")
+pop_iris<-readRDS("./data-raw/src/iris/pop_iris_2019.rds")
+pop_iris<-readRDS("./data-raw/src/iris/dt_pop_iris.rds")
 
 ###'Correspondance cp-com
 ##'==================================== 
-dt_com_cp<-readRDS("../cp_com/dt_com_cp.rds")
-dt_cp_com<-readRDS("../cp_com/dt_cp_com.rds")
+dt_com_cp<-readRDS("./data-raw/src/cp_com/dt_com_cp.rds")
+dt_cp_com<-readRDS("./data-raw/src/cp_com/dt_cp_com.rds")
 
 ###'Shape files
 ##'==================================== 
@@ -60,16 +60,16 @@ if (FALSE){## Très long
   shap_car<-st_read("./Filosofi2015_carreaux_200m_shp/Filosofi2015_carreaux_200m_metropole.shp")
   save(shap_car,file="shap_car.Rdata")
   }
-load("./src/shap_car.Rdata")
+load("./data-raw/src/cp_iris/src/shap_car.Rdata")
 
 ####'Shap codes postaux
 ##'---------------------------------------- 
-shap_cp<-readRDS("../cp/shap_cp.rds")
+shap_cp<-readRDS("./data-raw/src/cp/shap_cp.rds")
 shap_cp%<>%st_transform(st_crs(shap_car))
 
 ####'Shap IRIS
 ##'---------------------------------------- 
-shap_iris<-readRDS("../iris/shap_iris.rds")
+shap_iris<-readRDS("./data-raw/src/iris/shap_iris.rds")
 shap_iris%<>%st_transform( st_crs(shap_car))
 
 ###' Table de poids des IRIS dans les CPs
@@ -98,7 +98,7 @@ if (FALSE){
   save(w_mailles,mailles,file="inter_mailles_cp_iris.Rdata")
 
 } else {
-  load("inter_mailles_cp_iris.Rdata")
+  load("./data-raw/src/cp_iris/inter_mailles_cp_iris.Rdata")
 }
 
 ####'Vérifs
@@ -366,7 +366,7 @@ p_cp_iris%<>%mutate_if(is.character,as.factor)
 
 ###'On sauve
 ##'==================================== 
-saveRDS(p_cp_iris,"p_cp_iris.rds")
+saveRDS(p_cp_iris,"./data-raw/src/cp_iris/p_cp_iris.rds")
 
 
 ###'Vérifications

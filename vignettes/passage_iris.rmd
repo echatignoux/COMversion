@@ -1,0 +1,681 @@
+---
+title: Logique de correspondance entre les millésimes d'IRIS
+author: Edouard Chatignoux
+date: Mon Jun 26 15:57:14 2023
+output:
+  bookdown::html_document2:
+    <!-- css: style.css  -->
+    code_folding: hide 
+    highlight: tango
+    fig_width: 9
+    fig_height: 5
+    dev: svg
+    number_sections: true
+    toc: true
+    toc_float:
+      collapsed: false
+      smooth_scroll: false
+    fig_caption: TRUE
+    bibliography: ["bib.bib"]
+    biblio-style: "apalike"
+    link-citations: true
+---
+
+```{r}
+ knitr::opts_chunk$set(eval = TRUE, echo=T, cache=T,message = FALSE , warning = FALSE, include=TRUE )
+```
+
+
+```{r load, include=FALSE }
+
+library(magrittr)
+ library(tidyverse)
+ options(dplyr.summarise.inform = FALSE, dplyr.warn.conflicts = FALSE)
+theme_set(theme_bw())
+bis <- geom_abline(intercept=0, slope=1)
+library(COMversion)
+library(sf)
+library(readxl)
+
+ref_iris <- readRDS("c:/Users/e.chatignoux/Documents/work/RPackages/COMversion/data-raw/src/iris/tab_iris.rds")
+ref_com <- readRDS("c:/Users/e.chatignoux/Documents/work/RPackages/COMversion/data-raw/src/com/dt_pass_com.rds")
+
+ref_iris %<>%
+  filter(annee_geo %in% 2016:2017)
+
+dt_pass_iris<-
+  ref_iris%>%select(-dt_ref)%>%
+  unnest(dt_modif)%>%
+  filter(annee_geo==annee_modif)%>%
+  select(-annee_modif)
+
+dt_pass<-dt_pass_iris%>%filter(! (modif_iris==4 & iris_ini == iris_fin) )
+
+dt_ref_geo <- ref_iris%>%select(annee_geo,dt_ref)%>%unnest()%>%unique%>%
+  select(annee_geo,iris,lib_iris,com,lib_com=libcom)
+
+ref_fwd<-
+  dt_ref_geo%>%
+  filter(annee_geo==2016)%>%
+  select(com,iris)%>%
+  mutate(inn=TRUE)%>%
+  full_join(
+    dt_ref_geo%>%filter(annee_geo==2016+1)%>%
+      select(com,iris)%>%mutate(out=TRUE)
+  )
+
+out <- pass_com.w(2016,
+                  2017,
+                  by=~1)
+
+
+shap_iris2015<-read_sf("c:/Users/e.chatignoux/Documents/work/RPackages/COMversion/data-raw/src/iris/src/shap_iris2015/CONTOURS-IRIS.shp")%>%
+  select(com=INSEE_COM,iris=CODE_IRIS)
+shap_iris2016<-read_sf("c:/Users/e.chatignoux/Documents/work/RPackages/COMversion/data-raw/src/iris/src/shap_iris2016/CONTOURS-IRIS.shp")%>%
+  select(com=INSEE_COM,iris=CODE_IRIS)
+shap_iris2017<-read_sf("c:/Users/e.chatignoux/Documents/work/RPackages/COMversion/data-raw/src/iris/src/shap_iris2017/CONTOURS-IRIS.shp")%>%
+  select(com=INSEE_COM,iris=CODE_IRIS)
+
+modif_2016 <- read_xls(skip = 5,"./historiris/data/iris/reference_IRIS_geo2016.xls", sheet=3) %>%
+  mutate(an = "2016")
+modif_2017 <- read_xls(skip = 5,"./historiris/data/iris/reference_IRIS_geo2017.xls", sheet=3) %>%
+  mutate(an = "2017")
+modif_2018 <- read_xls(skip = 5,"./historiris/data/iris/reference_IRIS_geo2018.xls", sheet=3) %>%
+  mutate(an = "2018")
+
+ir_2017 <- read_xls(skip = 5,"./historiris/data/iris/reference_IRIS_geo2017.xls", sheet=1) %>%
+  mutate(an = "2017")
+ir_2016 <- read_xls(skip = 5,"./historiris/data/iris/reference_IRIS_geo2016.xls", sheet=1) %>%
+  mutate(an = "2016")
+ir_2015 <- read_xls(skip = 5,"./historiris/data/iris/reference_IRIS_geo2015.xls", sheet=1) %>%
+  mutate(an = "2015")
+
+ tab_1617<- read_csv("c:/Users/e.chatignoux/Documents/work/RPackages/valid_comversion/historiris/notebooks/output/passage_2016_2017_nb.csv")
+
+
+``` 
+
+
+Position du problème
+====================
+
+Millésimes d'IRIS
+-----------------
+
+Les IRIS évoluent dans le temps, et on ne dispose pas dans les bases
+de l'INSEE d'une table stricte de correspondance entre les millésimes
+des IRIS.
+
+Les modifications d'IRIS peuvent provenir de :
+
+1. Création/fusion d'IRIS existants
+
+2. Fusion/scission de communes
+
+3. Échange de parcelles
+
+
+Documentation disponible
+------------------------
+
+L'INSEE met à disposition des tables de référentiels d'IRIS (liste des
+IRIS officiels pour une année données), ainsi qu'une table listant les
+modification survenue dans les IRIS les 5 années précédentes.
+
+Si les référentiels d'IRIS pour une année donnée sont complets et fiables, la
+documentation sur les modification est assez fragmentaire, voir
+parfois trompeuse, et ne permet pas à elle seule de construire une
+table de passage entre les différents millésimes.
+
+Ces difficultés d'utilisation de la documentation sont de deux ordres.
+
+### Modifications sur les 5 dernières années ###
+
+D'une part, les modifications rapportées dans les onglets couvrent une
+période de 5 ans, sans que l'année de modification réelle de l'IRIS
+soit rapportée dans la table.
+
+Par exemple, dans la table des modifications d'IRIS de 2017, l'IRIS
+"490180103" est rapporté comme étant la fusion de plusieurs IRIS de
+2016, du fait de fusion de communes: 
+
+```{r}
+
+library(kableExtra)
+modif_2017 %>%
+  filter(IRIS_FIN=="490180103")%>%
+  kbl%>%
+  kable_styling()
+
+``` 
+
+Le problème, c'est que ces mofications de communes ont eu lieu en
+2016, et non en 2017, comme le montre la table de passage des communes.
+
+```{r}
+
+ref_com %>%
+  filter(com_2017 == "49018") %>%
+  select(com_2015:com_2017) %>%
+  unique() %>%
+  kbl%>%
+  kable_styling()
+
+``` 
+
+Cette liste des modifications rapportées pour cet IRIS est donc obsolète
+pour 2017. 
+
+Celà pourrait être sans conséquence si l'IRIS "490180103" n'avait pas
+changé entre 2016 et 2017. Or, il se trouve que l'IRIS "490180103"
+n'existait pas en 2016 et est apparu en 2017...
+
+On se trouve ici dans un cas de figure tordu, où, pour un IRIS qui
+apparait en 2017, on dispose d'information dans la table des
+modifications, mais que ces informations concernent des modifications
+antérieures apportées à un IRIS parent de l'IRIS "490180103" en 2016. 
+
+Il s'agit dans ce cas de l'IRIS "490180000", qui résultait de la
+fusion des communes en 2016, et qui a été redivisé en 2017 en 5
+nouveaux IRIS, pour lesquels on ne dispose pas de documentation
+adaptée dans les tables INSEE.
+
+Si on va chercher dans la table des référentiels, la situation
+s'éclaircit : la commune "49018", non irisée en 2016, est découpée en
+IRIS en 2017.
+
+```{r}
+
+ref_iris %>%
+  filter(annee_geo %in% 2016:2017) %>%
+  select(annee_geo,dt_ref)%>%
+  unnest() %>%
+  filter( com == "49018") %>%
+  kbl%>%
+  kable_styling()
+
+``` 
+
+```{r, include=F}
+
+dt_cv <- pass_geo(
+  geo_in = 2016,
+  geo_out = 2017,
+  geo = ~iris)
+
+a <- pass_geo(
+  geo_in = 2015,
+  geo_out = 2017,
+  geo = ~com)
+
+
+``` 
+
+```{r}
+
+shap1617<-shap_iris2016 %>% mutate(an=2016) %>%
+  bind_rows(shap_iris2017 %>% mutate(an=2017) )
+
+shap1517<-shap_iris2015 %>% mutate(an=2015) %>%
+  bind_rows(shap1617 )
+
+pb_iris <- "490180000"
+shap1517 %>%
+  filter( iris %in% c(pb_iris,
+                      dt_cv %>% filter(iris==pb_iris)%$%iris_out)|
+            com %in% c(a%>% filter(com_out=="49018")%$%com)) %>%
+  ggplot()+
+  aes(fill = iris)+
+  geom_sf()+
+  facet_wrap(~an)
+
+``` 
+
+Il semble cependant que dans historIRIS, ce soient les informations de
+la table des modifications qui aient été retenues, donnant lieu à des
+passages entre IRIS incorrects : 
+
+```{r}
+
+tab_1617 %>%
+  filter(CODE_IRIS_2017=="490180103") %>%
+  kbl%>%
+  kable_styling()
+
+``` 
+
+A noter que dans ce cas de figure, les IRIS listés en 2016 comme
+parents de "490180103" ne sont pas dans le référentiel des IRIS de
+2016 (mais dans celui de 2015, soit avant la fusion des communes en 2016).
+
+```{r}
+
+ir_2016 %>% filter(CODE_IRIS == "491570000") 
+ir_2015 %>% filter(CODE_IRIS == "491570000") 
+
+``` 
+
+### Modifications non documentées ###
+
+A l'invserse, certaines modifications ne sont pas documentées.
+Ex. : entre 2016 et 2017, 240530201 fusionne avec l'IRIS 244470000 pour
+devenir 240530103,  sans que celà soit listé dans les onglets modif_iris.
+
+
+```{r}
+
+modif_2017 %>% filter((IRIS_INI %in% c("240530103","240530201")) |(IRIS_FIN %in% c("240530103","240530201"))) %>%
+  kbl%>%
+  kable_styling()
+
+shap1617 %>%
+  filter(iris %in% c("240530103","240530201","244470000")) %>%
+  ggplot()+
+  aes(fill = iris)+
+  geom_sf()+
+  facet_wrap(~an)
+
+## tab_1617 %>% filter(CODE_IRIS_2016 == "240530201")
+
+``` 
+
+
+Logique de construction d'une table de passage
+=============================================
+Pour illustrer la logique de construction de la table de passage et
+les choix méthodologiques, on se focalise sur le passage entre les
+millésimes 2016 et 2017.
+
+Travail à partir des modifications de communes
+----------------------------------------------
+
+### Pas de modification d'IRIS dans la commune ###
+
+On sélectionne les IRIS dont les numéros sont inchangés entre deux
+millésimes : même numéro d'iris en 2016 et 2017.
+
+```{r}
+
+match1 <-
+  ref_fwd %>% 
+  group_by(com) %>%
+  filter(out,inn)%>%
+  mutate(com_fin=com,iris_fin=iris,match=1)%>%
+  select(com,iris,com_out=com_fin,iris_out=iris_fin,match)
+match1
+
+``` 
+
+### Modification de numéro d'IRIS dans les communes non irisées ###
+
+Des changements de numéros d'IRIS peuvent intervenir lors d'échange de
+parcelles, sans que la commune (non irisées) n'ait été modifiée. On
+traite ce cas ici.
+
+```{r}
+
+match2 <-
+  ref_fwd %>% 
+  group_by(com) %>%
+  filter(sum(inn, na.rm = T ) == 1, sum(out, na.rm = T ) ==1, n()>1)
+
+match2 %<>%
+  filter(inn) %>%
+  select(com, iris) %>%
+  left_join( match2 %>%
+               filter(out) %>%
+               select(com, iris_out = iris)
+            ) %>%
+  mutate(com_out=com) %>% 
+  mutate(match=2)
+match2
+``` 
+
+
+### Fusion de communes non irisées ###
+
+Il s'agit ici des IRIS présents en 2016, mais non retrouvé en 2017 du
+fait de fusions entre des communes _non irisées_.
+
+```{r}
+
+match3<-
+  ref_fwd%>%
+  filter(is.na(out))%>%
+  right_join(
+    out%>%filter(statut=="Fusion")%>%
+      left_join(dt_ref_geo%>%filter(annee_geo==2016+1)%>%select(com_out=com,iris_out=iris))%>%
+      filter(com != com_out)%>%
+      group_by(com)%>%
+      filter(n()==1)
+  ) %>%
+  mutate(match=3)%>%
+  select(com,iris,com_out,iris_out,match) %>%
+  arrange(iris_out)
+match3
+
+``` 
+
+### Scissions de communes ###
+
+Il s'agit ici des IRIS présents en 2017, mais non retrouvé en 2016 du
+fait de scission de communes.
+
+```{r}
+
+match4<-
+  ref_fwd%>%
+  filter(is.na(inn) & !is.na(out))%>%
+  rename(com_out=com,iris_out=iris)%>%
+  inner_join(out%>%filter(statut=="Scission"))%>%
+  left_join(dt_ref_geo%>%filter(annee_geo==2016))%>%
+  mutate(match=4)%>%
+  select(com,iris,com_out,iris_out,match)
+match4
+
+``` 
+
+### Création d'IRIS dans des communes non irisées jusque là ###
+
+Un seul IRIS en 2016, plusieurs en 2017, car des IRIS ont été créés
+dans une commune non irisée.
+
+```{r}
+
+match5<-
+  ref_fwd %>% 
+  group_by(com) %>%
+  filter(sum(inn,na.rm=T) ==1,
+         sum(out,na.rm=T) >1) %>%
+  arrange(com) 
+
+match5 %<>%
+  filter(inn) %>%
+  select(com, iris) %>%
+  left_join( match5 %>%
+               filter(out) %>%
+               select(com, iris_out = iris)
+            ) %>%
+  mutate(com_out=com) %>% 
+  mutate(match=5)
+
+match5
+
+``` 
+
+### Bilan des modifications de communes ###
+
+A ce stade, il reste une centaine de modifications d'IRIS non traitées.
+
+```{r}
+
+ref_tmp<-
+  match1%>%
+  bind_rows(match2)%>%
+  bind_rows(match3)%>%
+  bind_rows(match4)%>%
+  bind_rows(match5) %>% 
+  unique()
+
+ref_fwd %>%
+  filter(is.na(out)) %>% 
+  anti_join(ref_tmp %>% select(iris)) 
+
+ref_fwd %>%
+  filter(is.na(inn)) %>%  
+  anti_join(ref_tmp %>% select(iris = iris_out))  
+
+``` 
+
+Utilisation de la table des modifcations
+----------------------------------------
+
+### Modification d'iris documentée dans la table des modifs ###
+
+Il s'agit ici des IRIS présents en 2016, non retrouvé en 2017,
+dont les modifs sont documentées dans la table des modifs 2017.
+On espère que les infos dans la table des modifs sont les bonnes...
+
+```{r}
+
+match6 <-
+  ref_fwd%>%
+  filter(is.na(out)) %>% 
+  anti_join(ref_tmp %>%
+              select(com=com_out,iris=iris_out)) 
+
+match6 %<>%
+  left_join(
+    dt_pass%>%
+      filter(annee_geo==2016+1)%>%
+      rename(iris=iris_ini,com=com_ini)
+  )%>%
+  filter(!is.na(annee_geo))%>%
+  select(com,iris,com_out=com_fin,iris_out=iris_fin)%>%
+  inner_join(out)%>%
+  select(com,iris,com_out,iris_out)%>%
+  mutate(match=6)
+
+match6 %>%
+  group_by(iris) %>%
+  mutate(n = n()) %$%
+  table(n)
+
+match6
+
+``` 
+
+
+### Modification d'iris non documentée dans la table des modifs ###
+En entrée mais pas en sortie, pas dans dt_pass : noms modifiés lors des fusions
+Ex. : entre 2016 et 2017, 240530201 devient 240530103,
+sans que celà soit listé dans les onglets modif_iris
+
+```{r}
+
+ref_tmp<-
+  match1%>%
+  bind_rows(match2)%>%
+  bind_rows(match3)%>%
+  bind_rows(match4)%>%
+  bind_rows(match5)%>%
+  bind_rows(match6)%>%
+  unique()
+
+
+match7<-
+  ref_fwd%>%
+  anti_join(ref_tmp %>%
+              select(com,iris))
+
+match7%<>%
+  filter(is.na(out))%>%
+  left_join(dt_pass%>%filter(annee_geo==2016+1)%>%rename(iris=iris_ini,com=com_ini))%>%
+  filter(is.na(annee_geo))%>%
+  left_join(out)
+match7%$%table(statut)
+
+match7 %<>%
+  select(com,iris,com_out)%>%
+  left_join(dt_ref_geo%>%
+              filter(annee_geo==2016+1)%>%
+              select(com_out=com,iris_out=iris)
+            ) %>%
+  mutate(match=7)
+
+## Attention, certains num d'iris correspondent à d'anciens IRIS. On les cherche ici.
+match7%<>%
+  group_by(com,iris,com_out)%>%
+  mutate(seek_old=n()>1)%>%
+  group_by(seek_old)%>%
+  nest()%>%
+  mutate(data=map2(data,seek_old,
+                   function(data,seek_old){
+                     if (seek_old)
+                       data%<>%left_join(
+                         dt_pass%>%select(iris=iris_fin,com=com_fin,iris_ini)%>%
+                           left_join(dt_pass%>%select(iris_ini,iris_fin))%>%
+                           select(-iris_ini)%>%unique()
+                       )%>%filter(iris_out==iris_fin)
+                     data
+                   }))%>%
+  unnest(data)%>%
+  ungroup()%>%
+  select(com,iris,com_out,iris_out,match)
+
+match7
+
+``` 
+
+### Bilan à ce stade ###
+
+Il reste encore 15 IRIS apparus en 2017 qui n'ont pas
+de correspondance en 2016.
+
+```{r}
+
+
+ref_tmp<-
+  match1%>%
+  bind_rows(match2)%>%
+  bind_rows(match3)%>%
+  bind_rows(match4)%>%
+  bind_rows(match5)%>%
+  bind_rows(match6)%>%
+  bind_rows(match7)%>%
+  unique()
+
+ref_fwd %>%
+  filter(is.na(out)) %>% 
+  anti_join(ref_tmp %>% select(iris,com))
+
+ref_fwd %>%
+  filter(is.na(inn)) %>%  
+  anti_join(ref_tmp %>% select(iris = iris_out,com=com_out)) 
+
+
+``` 
+
+
+Utilisation de shapefiles
+-------------------------
+
+C'est le dernier cas de figure, où des IRIS sont apparus en 2017, sans
+que l'on ne retrouve la trace de ces apparitions dans la table des
+modifications de 2017, ni que ces apparitions soient dues à des modificaitions
+de communes.
+On utilise des shapes files pour voir où sont intervenues les modifications.
+
+```{r}
+
+match8<-
+  ref_fwd%>%
+  filter(is.na(inn) & !is.na(out))%>%
+  anti_join(ref_tmp %>%
+              select(com=com_out,iris=iris_out))
+
+geo <- 2016
+if (nrow(match8)>0){
+
+  shap_in<-get(paste0("shap_iris",geo))%>%
+    inner_join(match8%>%select(com)%>%unique())%>%
+    mutate(area_in = st_area(geometry))
+  shap_out<-get(paste0("shap_iris",geo+1))%>%
+    inner_join(match8%>%select(com)%>%unique())%>%
+    mutate(area_out = st_area(geometry))%>%
+    rename(iris_out=iris)
+
+  match8 <- st_intersection(shap_in, shap_out) %>%
+    mutate(int_area = st_area(.)) %>%   # create new column with shape area
+    select(com, iris, iris_out, area_in, area_out, int_area) %>%   # only select columns needed to merge
+    st_drop_geometry()  %>%
+    mutate(pct_in = as.numeric(int_area/area_in),
+           pct_out = as.numeric(int_area/area_out)
+           )%>%
+    filter(pct_out>.9)%>%
+    select(com,iris,iris_out)%>%
+    filter(iris!=iris_out)%>%
+    anti_join(ref_tmp)%>%
+    mutate(match=8)%>%
+    mutate(com_out=com)
+
+}
+
+match8
+
+ref_tmp<-
+  match1%>%
+  bind_rows(match2)%>%
+  bind_rows(match3)%>%
+  bind_rows(match4)%>%
+  bind_rows(match5)%>%
+  bind_rows(match6)%>%
+  bind_rows(match7)%>%
+  bind_rows(match8)%>%
+  unique()
+```
+
+On a bien traité tous les cas à ce stade.
+
+```{r}
+
+ref_fwd %>%
+  filter(inn) %>% 
+  anti_join(ref_tmp %>% select(iris, com)) 
+
+ref_fwd %>%
+  filter(out) %>% 
+  anti_join(ref_tmp %>% select(iris = iris_out, com=com_out))
+
+``` 
+
+Illustration:
+
+L'IRIS "490230202" est présent en 2017, et est listé comme étant lié à
+l'IRIS "493750000" en 2016. 
+
+```{r}
+
+modif_2017 %>% filter(IRIS_FIN=="490230202")
+
+``` 
+
+L'IRIS "493750000" n'est cependant pas présent en 2016, mais en 2015.
+Il s'agit ici d'une reprise des IRIS qui existaient au préalable à une
+fusion de commune intervenue en 2016.
+
+```{r}
+
+ir_2015 %>% filter(CODE_IRIS=="493750000")
+
+``` 
+
+Les IRIS qui correspondaient aux communes de 2015, qui avaient été
+fusionné en l'IRIS "490230201" 2016 en même temps que les communes,
+ont été rétablis en 2017, mais avec de nouveaux numéros. 
+
+Difficile de faire le lien dans ce contexte sans passer par des
+cartes.
+
+On aurait cependant pû repasser également par les historiques de modifications d'IRIS des
+annnées antérieures (2016 en l'occurence).
+
+```{r}
+
+modif_2016 %>% filter(IRIS_FIN=="490230201")
+
+``` 
+
+```{r}
+
+pb_iris <- "490230201"
+shap1617 %>%
+  filter( iris %in% c(pb_iris,
+                           dt_cv %>% filter(iris==pb_iris)%$%iris_out)) %>%
+  ggplot()+
+  aes(fill = iris)+
+  geom_sf()+
+  facet_wrap(~an)
+
+
+``` 

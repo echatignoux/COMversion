@@ -30,7 +30,8 @@ library(dtplyr)
 ##'==================================== 
 ####' Ref 2019
 ##'---------------------------------------- 
-ref_com <- readRDS("../com/ref_com.rds")
+ref_com <- readRDS("./data-raw/src/com/ref_com.rds") %>%
+    filter(annee_geo==2019)
 
 ####' Populations communales géo 2019
 ##'---------------------------------------- 
@@ -73,12 +74,12 @@ ref_com %>%
 
 ####'Corresps CP-com
 ##'---------------------------------------- 
-dt_com_cp <- readRDS("./dt_com_cp.rds")
-dt_cp_com <- readRDS("./dt_cp_com.rds")
+dt_com_cp <- readRDS("./data-raw/src/cp_com/dt_com_cp.rds")
+dt_cp_com <- readRDS("./data-raw/src/cp_com/dt_cp_com.rds")
 
 ####'Poids IRIS
 ##'---------------------------------------- 
-p_cp_iris <- readRDS("../cp_iris/p_cp_iris.rds")
+p_cp_iris <- readRDS("./data-raw/src/cp_iris/p_cp_iris.rds")
 
 ###'Calcul des poids 
 ##'==================================== 
@@ -161,4 +162,4 @@ p_cp_com%<>%mutate_if(is.character,as.factor)
 
 ###'On sauve
 ##'==================================== 
-saveRDS(p_cp_com,"./p_cp_com.rds")
+saveRDS(p_cp_com,"./data-raw/src/cp_com/p_cp_com.rds")

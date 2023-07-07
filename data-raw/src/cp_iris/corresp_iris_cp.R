@@ -19,13 +19,13 @@ library(readxl)
 ##'==================================== 
 ####' Référentiel communes 2019 INSEE
 ##'---------------------------------------- 
-ref_com_19<-read_csv("../sources/referentiels/communes-01012019.csv")
-## On filtre sur les communes principales + Arrondissments (y'a les déléguées aussi sinon)
-ref_com_19%<>%filter(typecom %in% c("ARM","COM"))
+ref_com_19<-readRDS("./data-raw/src/com/ref_com.rds") %>%
+  filter(annee_geo==2019)
 
 ####' Référentiel Iris 2019
 ##'---------------------------------------- 
-ref_iris<-readRDS("./ref_iris.rds")
+ref_iris<-readRDS("./data-raw/src/iris/ref_iris.rds") %>%
+  filter(annee_geo==2019)
 
 ####' Référentiel codes postaux
 ##'---------------------------------------- 
@@ -49,8 +49,8 @@ ref_cp%>%filter(cp!=cp_shp)
 
 ###'Correspondance IRIS - CP
 ##'====================================
-dt_com_cp <- readRDS("../sources/dt_com_cp.rds")
-dt_cp_com <- readRDS("../sources/dt_cp_com.rds")
+dt_com_cp <- readRDS("./data-raw/src/cp_com/dt_com_cp.rds")
+dt_cp_com <- readRDS("./data-raw/src/cp_com/dt_cp_com.rds")
 
 corresp_cp_com<-
   dt_cp_com%>%
@@ -75,7 +75,7 @@ corresp_com_cp<-
 ##'==================================== 
 save(ref_cp,
      ref_iris,
-	 ref_com,
+     ref_com,
      corresp_iris_18_20,
      corresp_iris_19_20,
      corresp_com20_cp,
