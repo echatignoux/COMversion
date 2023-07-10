@@ -477,6 +477,17 @@ figure, du fait de la logique en chaine, les correspondances
 spécifiques entre IRIS A et D,E et B avec F sont perdues.
 
 
+
+```
+#> Warning: le package 'dagitty' a été compilé avec la version R 4.2.3
+#> Warning: le package 'ggdag' a été compilé avec la version R 4.2.3
+#> 
+#> Attachement du package : 'ggdag'
+#> L'objet suivant est masqué depuis 'package:stats':
+#> 
+#>     filter
+```
+
 <img src="passage_iris_files/figure-html/unnamed-chunk-5-1.png" width="100%" />
 
 Pour illustration, l'IRIS "490230202" est par exemple présent en 2017, et est listé comme étant lié à
