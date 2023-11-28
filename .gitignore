@@ -5,6 +5,7 @@ inst/doc
 /data-raw/src/cp/src/
 /data-raw/src/iris/src/
 /data-raw/src/cp_iris/src/
+/data-raw/src/cp_iris/src/inter_mailles_cp_iris.Rdata
 /data-raw/src/cp_com/src/
 /.RData
 *.rds
