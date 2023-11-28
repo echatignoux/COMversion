@@ -32,6 +32,8 @@ C'est ce que propose le package `COMversion`.
 
 library(remotes)
 remotes::install_git("https://gitlab.santepubliquefrance.fr/data/rpackages/comversion")
+## Ou
+remotes::install_git("https://github.com/echatignoux/COMversion")
 
 ```
 
