@@ -14,6 +14,8 @@
 
 library(haven)
 library(readxl)
+library(tidyverse)
+library(magrittr)
 
 ###'Référentiels
 ##'==================================== 
@@ -29,10 +31,11 @@ ref_iris<-readRDS("./data-raw/src/iris/ref_iris.rds") %>%
 
 ####' Référentiel codes postaux
 ##'---------------------------------------- 
-ref_cp<-read_csv2("S:/alerte/Coronavirus_2020/3-Surveillance/SIDEP/INDICATEURS SpF/R/Prepare_data/CODE_POSTAL/laposte_hexasmal_20200602.csv",
-                  col_types = list(Code_commune_INSEE=col_character(),
-                                   Code_postal=col_character()))%>%
-  select(cp=Code_postal,com=Code_commune_INSEE)
+## ref_cp<-read_csv2("S:/alerte/Coronavirus_2020/3-Surveillance/SIDEP/INDICATEURS SpF/R/Prepare_data/CODE_POSTAL/laposte_hexasmal_20200602.csv",
+##                   col_types = list(Code_commune_INSEE=col_character(),
+##                                    Code_postal=col_character()))%>%
+##   select(cp=Code_postal,com=Code_commune_INSEE)
+ref_cp <- readRDS("./data-raw/src/cp/ref_cp.rds")
 
 ## Codes postaux hexasmal non dans le shape
 corresp_cp_shp<-read_csv2("S:/alerte/Coronavirus_2020/3-Surveillance/SIDEP/INDICATEURS SpF/R/Prepare_data/CODE_POSTAL/corresp_cp2.csv",

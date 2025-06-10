@@ -38,7 +38,7 @@ url_zip<-function(url){
 
 ###'Référentiel
 ##'====================================
-url_zip("https://www.insee.fr/fr/statistiques/fichier/2017499/reference_IRIS_geo2019.zip")
+url_zip("https://www.insee.fr/fr/statistiques/fichier/7708995/reference_IRIS_geo2019.zip")
 ref_iris <- read_xls(file.path(path,"./src/reference_IRIS_geo2019.xls"),skip=5)
 ref_iris%<>%rename(iris=CODE_IRIS)%>%
   rename_all(tolower)
@@ -53,13 +53,17 @@ url_zip("https://www.insee.fr/fr/statistiques/fichier/4228434/base-ic-evol-struc
 url_zip("https://www.insee.fr/fr/statistiques/fichier/4799309/base-ic-evol-struct-pop-2017.zip")
 url_zip("https://www.insee.fr/fr/statistiques/fichier/5650720/base-ic-evol-struct-pop-2018.zip")
 url_zip("https://www.insee.fr/fr/statistiques/fichier/6543200/base-ic-evol-struct-pop-2019.zip")
+url_zip("https://www.insee.fr/fr/statistiques/fichier/7704076/base-ic-evol-struct-pop-2020_xlsx.zip")
+url_zip("https://www.insee.fr/fr/statistiques/fichier/8268806/base-ic-evol-struct-pop-2021_xlsx.zip")
+
 url_zip("https://www.insee.fr/fr/statistiques/fichier/3137409/base-ic-evol-struct-pop-2014-com.zip")
 url_zip("https://www.insee.fr/fr/statistiques/fichier/3627376/base-ic-evol-struct-pop-2015-com.zip")
 url_zip("https://www.insee.fr/fr/statistiques/fichier/4228434/base-ic-evol-struct-pop-2016-com.zip")
 url_zip("https://www.insee.fr/fr/statistiques/fichier/4799309/base-ic-evol-struct-pop-2017-com.zip")
 url_zip("https://www.insee.fr/fr/statistiques/fichier/5650720/base-ic-evol-struct-pop-2018-com.zip")
 url_zip("https://www.insee.fr/fr/statistiques/fichier/6543200/base-ic-evol-struct-pop-2019-com.zip")
-
+url_zip("https://www.insee.fr/fr/statistiques/fichier/7704076/base-ic-evol-struct-pop-2020-com_xlsx.zip")
+url_zip("https://www.insee.fr/fr/statistiques/fichier/8268806/base-ic-evol-struct-pop-2021-com_xlsx.zip")
 
 ####' Lecture et mise en forme
 ##'----------------------------------------
@@ -67,12 +71,12 @@ get_pop <- function(annee){
   if( annee < 2017){
     dt_pop_iris <- read_xls(file.path(path,paste0("./src/base-ic-evol-struct-pop-",annee,".xls")),skip=5)
     dt_pop_iris_com <- read_xls(file.path(path,paste0("./src/base-ic-evol-struct-pop-",annee,"-com.xls")),skip=5)
-    }
+  }
   else {
     dt_pop_iris <- read_xlsx(file.path(path,paste0("./src/base-ic-evol-struct-pop-",annee,".xlsx")),skip=5)
     dt_pop_iris_com <- read_xlsx(file.path(path,paste0("./src/base-ic-evol-struct-pop-",annee,"-com.xlsx")),skip=5)
-    }
-
+  }
+  
   dt_pop_iris%<>%
     mutate_at(vars(-IRIS,-COM,-LAB_IRIS,-TYP_IRIS),as.numeric)%>%
     bind_rows(
@@ -111,7 +115,7 @@ get_pop <- function(annee){
 
 }
 
-dt_pop <- lapply(2014:2019,get_pop)%>%
+dt_pop <- lapply(2014:2021,get_pop)%>%
   bind_rows()
 
 ####' Vérifs
@@ -146,11 +150,18 @@ shap_iris_guy <-
 shap_iris_975 <-
     read_sf( "./data-raw/src/iris/src/CONTOURS-IRIS_2-1_SHP_RGSPM06U21_SPM-2018/CONTOURS-IRIS.shp"  )
 ## SAINT-BARTHELEMY 977 - 2014
-shap_iris_977 <-
-  read_sf( dsn = "S:/alerte/Coronavirus_2020/3-Surveillance/SIDEP/INDICATEURS SpF/R/Prepare_data/IRIS/CONTOURS-IRIS_2-0__SHP_LAMB93_FXX2014_2014-01-01/CONTOURS-IRIS/1_DONNEES_LIVRAISON_2014/CONTOURS-IRIS_2-0_SHP_UTM20W84GUAD_D977-2014", layer="CONTOURS-IRIS_D977"  )
-## SAINT-MARTIN 978 - 2014
-shap_iris_978 <- read_sf( dsn = "S:/alerte/Coronavirus_2020/3-Surveillance/SIDEP/INDICATEURS SpF/R/Prepare_data/IRIS/CONTOURS-IRIS_2-0__SHP_LAMB93_FXX2014_2014-01-01/CONTOURS-IRIS/1_DONNEES_LIVRAISON_2014/CONTOURS-IRIS_2-0_SHP_UTM20W84GUAD_D978-2014",
-                         layer="CONTOURS-IRIS_D978"  )
+## shap_iris_977 <-
+##   read_sf( dsn = "S:/alerte/Coronavirus_2020/3-Surveillance/SIDEP/INDICATEURS SpF/R/Prepare_data/IRIS/CONTOURS-IRIS_2-0__SHP_LAMB93_FXX2014_2014-01-01/CONTOURS-IRIS/1_DONNEES_LIVRAISON_2014/CONTOURS-IRIS_2-0_SHP_UTM20W84GUAD_D977-2014", layer="CONTOURS-IRIS_D977"  )
+## ## SAINT-MARTIN 978 - 2014
+## shap_iris_978 <- read_sf( dsn = "S:/alerte/Coronavirus_2020/3-Surveillance/SIDEP/INDICATEURS SpF/R/Prepare_data/IRIS/CONTOURS-IRIS_2-0__SHP_LAMB93_FXX2014_2014-01-01/CONTOURS-IRIS/1_DONNEES_LIVRAISON_2014/CONTOURS-IRIS_2-0_SHP_UTM20W84GUAD_D978-2014",
+##                          layer="CONTOURS-IRIS_D978"  )
+
+## Homogénéisation des crs
+shap_iris_guad %<>% st_transform(crs=st_crs(shap_iris_metro))
+shap_iris_mart %<>% st_transform(crs=st_crs(shap_iris_metro))
+shap_iris_may %<>% st_transform(crs=st_crs(shap_iris_metro))
+shap_iris_reu %<>% st_transform(crs=st_crs(shap_iris_metro))
+shap_iris_guy %<>% st_transform(crs=st_crs(shap_iris_metro))
 
 ## Shape global
 shap_iris <-
@@ -160,10 +171,10 @@ shap_iris <-
       shap_iris_mart,
       shap_iris_may,
       shap_iris_reu,
-      shap_iris_guy,
-      shap_iris_975,
-      shap_iris_977%>%rename(INSEE_COM=DEPCOM)%>%mutate(CODE_IRIS=paste0(INSEE_COM,IRIS)),
-      shap_iris_978%>%rename(INSEE_COM=DEPCOM)%>%mutate(CODE_IRIS=paste0(INSEE_COM,IRIS))
+      shap_iris_guy## ,
+      ## shap_iris_975
+      ## shap_iris_977%>%rename(INSEE_COM=DEPCOM)%>%mutate(CODE_IRIS=paste0(INSEE_COM,IRIS)),
+      ## shap_iris_978%>%rename(INSEE_COM=DEPCOM)%>%mutate(CODE_IRIS=paste0(INSEE_COM,IRIS))
       )%>%bind_rows()%>%
   select(iris=CODE_IRIS,lib_iris=NOM_IRIS,com=INSEE_COM,geometry)
 
@@ -177,9 +188,9 @@ setdiff(ref_iris$iris,dt_pop$iris%>%unique)
 ##'----------------------------------------
 read_iris<-function(annee){
   if (annee>=2016)
-    url<-paste0("https://www.insee.fr/fr/statistiques/fichier/2017499/reference_IRIS_geo",annee,".zip")
+    url<-paste0("https://www.insee.fr/fr/statistiques/fichier/7708995/reference_IRIS_geo",annee,".zip")
   else
-    url<-paste0("https://www.insee.fr/fr/statistiques/fichier/2017499/IRIS_table_geo",annee,".zip")
+    url<-paste0("https://www.insee.fr/fr/statistiques/fichier/7708995/IRIS_table_geo",annee,".zip")
   url_zip(url)
   file<-grep(paste0("reference_IRIS_geo",annee),dir(file.path(path,"./src")),value=T)
   if (str_detect(file,".xlsx$")){
@@ -193,7 +204,8 @@ read_iris<-function(annee){
                iris_fin,
                com_ini,
                com_fin
-               )
+               ) %>%
+        mutate(annee_modif=as.character(annee_modif))
   }
   else{
     dt_ref<-read_xls(file.path(path,"./src",file),skip=5-(annee==2013),sheet=1)
@@ -206,7 +218,8 @@ read_iris<-function(annee){
                iris_fin,
                com_ini,
                com_fin
-               )
+               ) %>%
+        mutate(annee_modif=as.character(annee_modif))
   }
   if(annee<2016) dt_modif<-NULL
 
@@ -217,7 +230,8 @@ read_iris<-function(annee){
                          rename_all(tolower)%>%
                          select(iris=code_iris,lib_iris,com=depcom,everything())))
 }
-tab_iris<-lapply(2008:2022,read_iris)%>%
+
+tab_iris<-lapply(2008:2024,read_iris)%>%
   bind_rows()
 
 ####'Table de référence géo (com + iris)
@@ -248,6 +262,10 @@ shap_iris2020<-read_sf(file.path(path,"./src/shap_iris2020/CONTOURS-IRIS.shp"))%
 shap_iris2021<-read_sf(file.path(path,"./src/shap_iris2021/CONTOURS-IRIS.shp"))%>%
   select(com=INSEE_COM,iris=CODE_IRIS)
 shap_iris2022<-read_sf(file.path(path,"./src/shap_iris2022/CONTOURS-IRIS.shp"))%>%
+  select(com=INSEE_COM,iris=CODE_IRIS)
+shap_iris2023<-read_sf(file.path(path,"./src/shap_iris2023/CONTOURS-IRIS.shp"))%>%
+  select(com=INSEE_COM,iris=CODE_IRIS)
+shap_iris2024<-read_sf(file.path(path,"./src/shap_iris2024/CONTOURS-IRIS.shp"))%>%
   select(com=INSEE_COM,iris=CODE_IRIS)
 
 
@@ -506,11 +524,11 @@ pass_iris<-function(geo){
   pass
 }
 
-dt_pass_iris <- tibble(annee_geo=2016:2021) %>%
+dt_pass_iris <- tibble(annee_geo=2016:2024) %>%
   mutate(pass=map(annee_geo,pass_iris)) %>%
   unnest(pass)
 
-dt_pass_iris %$% table(match)
+dt_pass_iris %$% table(match) 
 
 ## Doublons?
 dt_pass_iris%>%
@@ -539,19 +557,20 @@ dt_pass_iris%>%
   anti_join(dt_ref_geo)
 
 dt_ref_geo%>%
-  filter(annee_geo %in% 2016:2021)%>%
+  filter(annee_geo %in% 2016:2024)%>%
   anti_join(
     dt_pass_iris%>%
     select(com,iris,annee_geo)
   )%$%table(annee_geo)
 
 dt_ref_geo%>%
-  filter(annee_geo %in% 2017:2022)%>%
+  filter(annee_geo %in% 2017:2025)%>%
   anti_join(
     dt_pass_iris%>%
     select(com=com_out,iris=iris_out,annee_geo)%>%
     mutate(annee_geo = annee_geo +1 )
-  )
+  ) %>%
+  print(n=100)
 ## Ok
 
 ## Scissions de communes
@@ -578,6 +597,7 @@ fus_iris<-
   mutate(annee_geo=as.character(annee_geo+1))
 
 fus_iris%>%
+  mutate(annee_geo=as.numeric(annee_geo)) %>%
   anti_join(
     readRDS(file.path(path,"../com/dt_fus_com.rds"))%>%
     mutate(annee_geo=annee_modif)%>%
@@ -588,7 +608,8 @@ readRDS(file.path(path,"../com/dt_fus_com.rds"))%>%
   mutate(annee_geo=annee_modif)%>%
   rename(com=com_ini,com_out=com_fin)%>%
   anti_join(
-    fus_iris
+    fus_iris %>%
+        mutate(annee_geo=as.numeric(annee_geo))
   )
 
 fus_iris%>%filter(com=="27058")
@@ -680,12 +701,16 @@ ref_iris <- tab_iris %>%
 ## Chek avec la ref com
 ref_com <- readRDS(file.path(path,"../com/ref_com.rds"))
 ref_iris %>% anti_join(ref_com)
-ref_com %>% filter(annee_geo>=2008,annee_geo<2023,str_sub(com,1,2)!="97") %>% anti_join(ref_iris)
+ref_com %>% filter(annee_geo>=2008,annee_geo<2025,str_sub(com,1,2)!="97") %>% anti_join(ref_iris)
 
 
 ###'On sauve
 ##'====================================
 saveRDS(dt_pop %>% filter(annee_geo == 2019),file=file.path(path,"pop_iris_2019.rds"))
+saveRDS(dt_pop %>% filter(annee_geo == 2020),file=file.path(path,"pop_iris_2020.rds"))
+saveRDS(dt_pop %>% filter(annee_geo == 2021),file=file.path(path,"pop_iris_2021.rds"))
+saveRDS(dt_pop %>% filter(annee_geo == 2022),file=file.path(path,"pop_iris_2022.rds"))
+saveRDS(dt_pop %>% filter(annee_geo == 2023),file=file.path(path,"pop_iris_2023.rds"))
 saveRDS(ref_iris,file=file.path(path,"ref_iris.rds"))
 saveRDS(shap_iris,file=file.path(path,"shap_iris.rds"))
 saveRDS(dt_pass_iris,file=file.path(path,"dt_pass_iris.rds"))

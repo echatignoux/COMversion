@@ -25,13 +25,16 @@ library(RSQLite)
 library(sf)
 library(readxl)
 library(dtplyr)
+library(tidyverse)
+library(magrittr)
 
 ###'Lecture données
 ##'==================================== 
 ####' Ref 2019
 ##'---------------------------------------- 
 ref_com <- readRDS("./data-raw/src/com/ref_com.rds") %>%
-    filter(annee_geo==2019)
+  filter(annee_geo==2019)
+ref_cp <- readRDS("./data-raw/src/cp/ref_cp.rds") 
 
 ####' Populations communales géo 2019
 ##'---------------------------------------- 
@@ -159,6 +162,10 @@ p_cp_com%>%na.omit()%>%group_by(cp)%>%summarise(p=sum(p_c))%$%range(p)
 
 p_cp_com%<>%lazy_dt%>%arrange(cp,com,age,sexe)%>%as_tibble()
 p_cp_com%<>%mutate_if(is.character,as.factor)
+
+p_cp_com %>% group_by(cp) %>% summarise(p_c=sum(p_c))%$%table(p_c)
+p_cp_com %>% anti_join(ref_com) %>% filter(!str_sub(com,1,2)=="97")
+p_cp_com %>% anti_join(ref_cp) %>% filter(!str_sub(com,1,2)=="97")
 
 ###'On sauve
 ##'==================================== 

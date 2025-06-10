@@ -34,8 +34,9 @@ url_zip<-function(url){
 
 ###'Référentiel
 ##'==================================== 
-url_zip("https://www.insee.fr/fr/statistiques/fichier/6800675/cog_ensemble_2023_csv.zip")
-ref_arm <- read_csv(file.path(path,"./src/v_commune_2023.csv"))%>%rename_all(tolower) %>%
+## url_zip("https://www.insee.fr/fr/statistiques/fichier/6800675/cog_ensemble_2023_csv.zip")
+url_zip("https://www.insee.fr/fr/statistiques/fichier/8377162/cog_ensemble_2025_csv.zip")
+ref_arm <- read_csv(file.path(path,"./src/v_commune_2025.csv"))%>%rename_all(tolower) %>%
   filter(typecom=="ARM")
 ref_com <- read_csv(file.path(path,"./src/v_commune_depuis_1943.csv"))
 ref_com%<>%rename_all(tolower)
@@ -46,7 +47,7 @@ ref_com %<>%
   filter(!(date_debut==date_fin & !is.na(date_fin))) %>% 
   mutate(annee_deb = year(date_debut) + (format(date_debut,"%m")>"01"),
          annee_fin = year(date_fin)-(format(date_fin,"%d")=="01" & format(date_fin,"%m")=="01"),
-         annee_fin = replace_na(annee_fin,2023)
+         annee_fin = replace_na(annee_fin,2024)
          ) %>%
   group_by(com) %>%
   arrange(com,date_debut) %>%
@@ -60,9 +61,9 @@ ref_com %<>%
   filter(row_number() == max(n()))
 
 ref_com %<>%
-  bind_rows(ref_arm %>% mutate(annee_deb = 2005, annee_fin = 2023)) %>% 
+  bind_rows(ref_arm %>% mutate(annee_deb = 2005, annee_fin = 2025)) %>% 
   filter(annee_fin > 2005) %>%
-  filter(annee_fin > annee_deb | annee_fin==2023) %>% 
+  filter(annee_fin > annee_deb | annee_fin==2025) %>% 
   mutate(annee_deb = ifelse(annee_deb<2005,2005,annee_deb)) %>% 
   ungroup() %>% 
   select(com, lib_com = libelle, annee_deb, annee_fin) %>%
@@ -88,7 +89,7 @@ ref_com %<>%
 pop.path<-"S:/REFERENTIELS/population/Recensements/format_csv"
 
 plan(multisession, workers=2)
-dt_pop_com<-tibble(annee_pop=2006:2020)%>%
+dt_pop_com<-tibble(annee_pop=2006:2021)%>%
   group_by(annee_pop)%>%
   mutate(pop=future_map(annee_pop,function(a)
     fread(file.path(pop.path,paste0("recensement_",a,".csv")),
@@ -121,7 +122,7 @@ ref_pc %>%
   anti_join(ref_com)
 
 ref_com %>%
-  filter(annee_geo %in% 2008:2022) %>%
+  filter(annee_geo %in% 2008:2024) %>%
   filter(!str_sub(com,1,2)=="97") %>% 
   anti_join(ref_pc) %$%
   table(annee_geo)
@@ -130,9 +131,10 @@ ref_com %>%
 ##'==================================== 
 ####'Tables de référence
 ##'---------------------------------------- 
-url_zip("https://www.insee.fr/fr/statistiques/fichier/2028028/table_passage_annuelle_2023.zip")
+## https://www.insee.fr/fr/information/7671867
+url_zip("https://www.insee.fr/fr/statistiques/fichier/7671867/table_passage_annuelle_2025.zip")
 ## Table de passage entre les milésimes
-dt_pass_coms<-read_xlsx(file.path(path,"./src/table_passage_annuelle_2023.xlsx"),sheet=1,skip=5)%>%
+dt_pass_coms<-read_xlsx(file.path(path,"./src/table_passage_annuelle_2025.xlsx"),sheet=1,skip=5)%>%
   rename_at(vars(contains("CODGEO")),function(x) gsub("CODGEO","com",x))%>%
   rename_at(vars(contains("LIBGEO")),function(x) gsub("lib","com",x))%>%
   select(NIVGEO,contains("com"))
@@ -156,12 +158,12 @@ dt_pass_coms%<>%filter(!(!is.na(com_2015) & com_2015=="14472"))
 dt_pass_coms%<>%filter(!(com_2015 %in% c("13055","69123","75056")))
 
 ## Table des scissions de communes
-dt_scis_coms<-read_xlsx(file.path(path,"./src/table_passage_annuelle_2023.xlsx"),sheet=3,skip=5)
+dt_scis_coms<-read_xlsx(file.path(path,"./src/table_passage_annuelle_2025.xlsx"),sheet=3,skip=5)
 dt_scis_coms%<>%rename_all(tolower)
 dt_scis_coms%<>%mutate_at(vars(-annee_modif),as.factor)
 
 ## Table des funsions de communes
-dt_fus_coms<-read_xlsx(file.path(path,"./src/table_passage_annuelle_2023.xlsx"),sheet=2,skip=5)
+dt_fus_coms<-read_xlsx(file.path(path,"./src/table_passage_annuelle_2025.xlsx"),sheet=2,skip=5)
 dt_fus_coms%<>%rename_all(tolower)
 dt_fus_coms%<>%mutate_at(vars(-annee_modif),as.factor)
 ## A noter que pour certaines communes (2 en fait), fusion = transfert (i.e. même commune mais pas même numéro)
@@ -173,7 +175,7 @@ dt_fus_coms%>%group_by(com_fin)%>%
 ##' https://www.insee.fr/fr/metadonnees/cog/commune/COM14697-totes
 ##' Malgré celà, la commune apparait dans les référentiels (et dans les tables de pop) jusqu'en 2015...
 ##' On corrige donc ici l'année 2015 par 2016 dans la table des fusions
-dt_fus_coms[dt_fus_coms$com_ini=="14697","annee_modif"] <- "2016"
+dt_fus_coms[dt_fus_coms$com_ini=="14697","annee_modif"] <- 2016
 
 ####'Travail sur la table de passage
 ##'---------------------------------------- 

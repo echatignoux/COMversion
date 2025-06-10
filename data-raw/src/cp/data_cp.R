@@ -37,9 +37,10 @@ url_zip<-function(url){
 ##'==================================== 
 ####'Ref
 ##'----------------------------------------
-ref_cp<-read_csv2("https://datanova.laposte.fr/explore/dataset/laposte_hexasmal/download/?format=csv&timezone=Europe/Berlin&lang=fr&use_labels_for_header=true&csv_separator=%3B")
-ref_cp%<>%
-  rename( com=Code_commune_INSEE, code_postal=Code_postal, nom_com=Nom_commune )
+# ref_cp<-read_csv2("https://datanova.laposte.fr/data-fair/api/v1/datasets/laposte-hexasmal/metadata-attachments/base-officielle-codes-postaux.csv") ## Marche plus
+ref_cp<-read_csv("./data-raw/src/cp/base-officielle-codes-postaux.csv")
+ref_cp %<>%
+  rename( com=code_commune_insee, code_postal=code_postal, nom_com=nom_de_la_commune )
 
 ## Supprimer les COMs en 98
 ref_cp %<>% filter( ! substr( com,1,2) %in% c(98, 99 ))
@@ -57,7 +58,7 @@ ref_cp%<>%
 ##'---------------------------------------- 
 ## Shape de Jerome Pouey pour les DROMS; Emc3 pour métro
 ## https://www.data.gouv.fr/fr/datasets/fond-de-carte-des-codes-postaux/#resources
-chem <- "src/CP_SHP/"
+chem <- "./data-raw/src/cp/src/CP_SHP/"
 ## Shap de Emc3 màj 2019
 shap_metro <- st_read( dsn = paste0( chem, "metropole_emc3_2020" ), layer="codes_postaux_region", stringsAsFactors = F )
 ## Shape de Jerome Pouey
@@ -110,13 +111,14 @@ setdiff(ref_cp$cp,shap_cp$cp)
 
 ###'On sauve
 ##'==================================== 
-saveRDS( ref_cp,"./ref_cp.rds")
-saveRDS( shap_cp, "./shap_cp.rds" )
+path<-"./data-raw/src/cp"
+
+saveRDS( ref_cp,file.path(path,"./ref_cp.rds"))
+saveRDS( shap_cp, file.path(path,"./shap_cp.rds" ))
 
 
 ###'En plus (département des CP)
 ##'==================================== 
-
 # Départements des CP
 cp<-cp%>%
   mutate(dep=substr(com,1,2))%>%

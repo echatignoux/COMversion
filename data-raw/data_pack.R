@@ -56,7 +56,7 @@ p_cp_iris%<>%
   mutate(p_i=p_i/sum(p_i))%>%
   ungroup()
 
-####'Poids de passage com/cp
+####'Poids de passage cp -> com
 ##'----------------------------------------
 p_cp_com <- readRDS("./src/cp_com/p_cp_com.rds")
 ## On supprime les cases vides
@@ -71,6 +71,19 @@ p_cp_com%<>%
 ## on renormalise par CP (pbs numériques sinon)
 p_cp_com%<>%
   group_by(cp)%>%
+  mutate(p_c=p_c/sum(p_c))%>%
+  ungroup()
+
+####'Poids de passage com -> cp
+##'----------------------------------------
+p_com_cp <- readRDS("./src/com_cp/p_com_cp.rds")
+## On supprime les cases vides
+p_com_cp%<>%
+  filter(! substr(com,1,3) == "976")
+
+## on renormalise par com (pbs numériques sinon)
+p_com_cp%<>%
+  group_by(com)%>%
   mutate(p_c=p_c/sum(p_c))%>%
   ungroup()
 
@@ -108,7 +121,7 @@ ref_geo<-dt_ref_geo
 usethis::use_data(pass_com,fus_com,scis_com,pop_com,
                   pass_iris,w_pass_iris,
                   ref_geo,
-                  p_cp_com,p_cp_iris,
+                  p_cp_com,p_cp_iris,p_com_cp,
                   internal = TRUE,overwrite = TRUE)
 
 ####'rda

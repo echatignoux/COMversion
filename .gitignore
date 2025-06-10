@@ -20,3 +20,5 @@ inst/doc
 /vignettes/utilisation_COMversion_cache/
 ## /vignettes/utilisation_COMversion_files/
 /doc/
+*.Rdata
+*.csv

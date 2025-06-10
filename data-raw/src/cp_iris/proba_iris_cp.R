@@ -44,7 +44,6 @@ ref_cp<-readRDS("././data-raw/src/cp/ref_cp.rds")%>%arrange(cp)
 ####'Pop
 ##'---------------------------------------- 
 pop_iris<-readRDS("./data-raw/src/iris/pop_iris_2019.rds")
-pop_iris<-readRDS("./data-raw/src/iris/dt_pop_iris.rds")
 
 ###'Correspondance cp-com
 ##'==================================== 
@@ -95,7 +94,7 @@ if (FALSE){
     mutate(w=as.numeric(area)/sum(as.numeric(area)))%>%
     ungroup()
 
-  save(w_mailles,mailles,file="inter_mailles_cp_iris.Rdata")
+  save(w_mailles,mailles,file="./data-raw/src/cp_iris/inter_mailles_cp_iris.Rdata")
 
 } else {
   load("./data-raw/src/cp_iris/inter_mailles_cp_iris.Rdata")
@@ -285,7 +284,7 @@ dt_cp_com%>%select(cp)%>%
   anti_join(w_iris_cp%>%ungroup()%>%select(cp))## Manque Mayotte
 ## 3 cp métro non dans le shape, mais ils correspondent à des communes ok pour les cp...
 dt_cp_com%>%filter(cp=="83530")%>%unnest(com)
-dt_com_cp%>%filter(com=="83118")
+dt_com_cp%>%filter(com=="83118")%>%unnest(cp)
 
 w_iris_cp%>%ungroup()%>%select(com)%>%
   anti_join(dt_com_cp%>%ungroup()%>%select(com))

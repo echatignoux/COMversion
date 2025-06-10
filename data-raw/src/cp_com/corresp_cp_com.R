@@ -27,14 +27,16 @@ plan(multisession, workers = 4)
 library(progressr)
 
 ###'Ref communes 2019
-##'==================================== 
-ref_com <- readRDS("../com/ref_com.rds")
-  
+##'====================================
+path<-"./data-raw/src/cp_com/"
+ref_com <- readRDS("./data-raw/src/com/ref_com.rds") %>%
+  filter(annee_geo==2019)
+
 ###'Table de correspondance communes/cp
 ##'==================================== 
 ####'Lecture et mef de la table
 ##'---------------------------------------- 
-dt_cp_com<-read.csv("S:/REFERENTIELS/nomenclature/geographie/code_postal/t-corresp-cp.csv", sep=",", encoding = "latin-1",colClasses = "character")%>%
+dt_cp_com<-read.csv("S:/REFERENTIELS/nomenclature/geographie/code_postal/old/t-corresp-cp.csv", sep=",", encoding = "latin1",colClasses = "character")%>%
   as_tibble()
 dt_cp_com<-dt_cp_com%>%
   select(-source,-date_maj)%>%
@@ -53,8 +55,9 @@ dt_cp_com%>%unnest(com)%>%
 ref_com%>%select(com)%>%
   anti_join(dt_cp_com%>%unnest(com))
 ## On les rajoute à la main
-add_coms<-ref_com%>%
-  select(com,com_lib=libelle)%>%
+add_coms<-
+  ref_com%>%
+  select(com)%>%
   anti_join(dt_cp_com%>%unnest(com))%>%
   mutate(cp=case_when(com=="21507"~"21110",
                       com=="21213"~"21800",
@@ -139,6 +142,6 @@ dt_cp_com%<>%
   select(cp,com,n_com,match_cp_com)
 
 ###'On sauve
-##'==================================== 
-saveRDS(dt_com_cp,"dt_com_cp.rds")
-saveRDS(dt_cp_com,"dt_cp_com.rds")
+##'====================================
+saveRDS(dt_com_cp,file.path(path,"dt_com_cp.rds"))
+saveRDS(dt_cp_com,file.path(path,"dt_cp_com.rds"))
