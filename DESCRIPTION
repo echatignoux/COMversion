@@ -1,6 +1,6 @@
 Package: COMversion
 Title: Conversion des géographies Françaises
-Version: 2.0
+Version: 3.0
 Authors@R: 
     c(person(given = "Edouard",
            family = "Chatignoux",

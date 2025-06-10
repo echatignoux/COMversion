@@ -1,3 +1,12 @@
+# COMversion 3.0
+## Modifications majeures
+### Actualisation des référentiels
+Ajout des référentiels géographiques 2024.
+
+* Passage entre communes : géographies 2003 à 2024
+* Passage entre iris : géographies 2016 à 2022
+
+
 # COMversion 2.0
 
 ## Modifications majeures
